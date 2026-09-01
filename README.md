@@ -82,7 +82,7 @@ exports/html/
   assets/style.css
 ```
 
-Dieser Ordner kann spaeter direkt auf `tacomex.de/menu` hochgeladen werden.
+Dieser Ordner kann spaeter direkt auf `menu.tacomex.de` hochgeladen werden.
 
 ## Spaetere Windows-EXE
 

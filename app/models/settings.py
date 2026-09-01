@@ -11,7 +11,7 @@ class Settings(Base):
     restaurant_name: Mapped[str] = mapped_column(String(160), default="TacoMex")
     subtitle: Mapped[str | None] = mapped_column(String(255), default="Mexican Kitchen & Bar")
     website_url: Mapped[str | None] = mapped_column(String(500), default="https://tacomex.de")
-    menu_url: Mapped[str | None] = mapped_column(String(500), default="https://tacomex.de/menu")
+    menu_url: Mapped[str | None] = mapped_column(String(500), default="https://www.tacomex.de/menu")
     address: Mapped[str | None] = mapped_column(Text, default="")
     phone: Mapped[str | None] = mapped_column(String(80), default="")
     currency: Mapped[str] = mapped_column(String(8), default="EUR")

@@ -44,6 +44,7 @@ from app.database.db import DEFAULT_DB_PATH
 from app.database.repositories import MenuRepository
 from app.database.repositories.menu_repository import ValidationError
 from app.gui.dialogs.price_editor import PriceEditorDialog
+from app.gui.dialogs.settings_dialog import SettingsDialog
 from app.gui.theme import apply_theme, mark_button
 from app.models import Category, CategoryType, MenuItem
 from app.services.backup_service import BackupService
@@ -978,7 +979,11 @@ class MainWindow(QMainWindow):
             self.reload_categories()
 
     def open_settings(self) -> None:
-        QMessageBox.information(self, "Einstellungen", "Der Einstellungsdialog ist fuer die naechste UI-Iteration vorgesehen.")
+        settings = self.repo.get_settings()
+        dialog = SettingsDialog(settings, self)
+        if dialog.exec():
+            self._run_user_action(lambda: self.repo.save_settings(settings), "Einstellungen gespeichert")
+            self.statusBar().showMessage("Menü-URL gespeichert", 3000)
 
     def select_image(self) -> None:
         source, _ = QFileDialog.getOpenFileName(self, "Bild auswaehlen", str(PROJECT_ROOT), "Bilder (*.png *.jpg *.jpeg *.webp)")

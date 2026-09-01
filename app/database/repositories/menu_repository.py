@@ -124,10 +124,18 @@ class MenuRepository:
     def get_settings(self) -> Settings:
         settings = self.session.get(Settings, 1)
         if not settings:
-            settings = Settings(id=1)
+            settings = Settings(id=1, menu_url="https://www.tacomex.de/menu")
             self.session.add(settings)
             self.session.commit()
+        elif not settings.menu_url or settings.menu_url.strip() == "https://menu.tacomex.de":
+            # Migrate installations that still use the former default QR target.
+            settings.menu_url = "https://www.tacomex.de/menu"
+            self.session.commit()
         return settings
+
+    def save_settings(self, settings: Settings) -> None:
+        self.session.add(settings)
+        self.session.commit()
 
     def menu_tree(self, active_only: bool = True) -> list[Category]:
         stmt = (
