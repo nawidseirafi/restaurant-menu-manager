@@ -39,10 +39,10 @@ def test_html_export(session, tmp_path: Path):
 
 
 def test_qr_code_export(session, tmp_path: Path):
-    png = QrExporter().export_png("https://menu.tacomex.de", tmp_path / "qr.png")
-    svg = QrExporter().export_svg("https://menu.tacomex.de", tmp_path / "qr.svg")
+    png = QrExporter().export_png("https://tacomex.de/menu", tmp_path / "qr.png")
+    svg = QrExporter().export_svg("https://tacomex.de/menu", tmp_path / "qr.svg")
     print_html = QrExporter().export_print_html(
-        "https://menu.tacomex.de", tmp_path / "qr-print.html", "TacoMex"
+        "https://tacomex.de/menu", tmp_path / "qr-print.html", "TacoMex"
     )
     assert png.exists()
     assert svg.exists()

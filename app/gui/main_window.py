@@ -343,12 +343,16 @@ class MainWindow(QMainWindow):
         self.active_check = QCheckBox("Aktiv")
         self.vegetarian_check = QCheckBox("Vegetarisch")
         self.vegan_check = QCheckBox("Vegan")
+        for check in (self.active_check, self.vegetarian_check, self.vegan_check):
+            check.setProperty("class", "statusChip")
+            check.setCursor(Qt.PointingHandCursor)
         self.spicy_spin = QSpinBox()
         self.spicy_spin.setRange(0, 5)
         self.spicy_spin.setSingleStep(1)
         self.spicy_spin.setButtonSymbols(QAbstractSpinBox.NoButtons)
-        self.spicy_spin.setFixedWidth(58)
+        self.spicy_spin.setFixedSize(52, 34)
         self.spicy_spin.setAlignment(Qt.AlignCenter)
+        self.spicy_spin.setProperty("class", "compactSpin")
         self.allergens_edit = QLineEdit()
         self.additives_edit = QLineEdit()
 
@@ -493,18 +497,23 @@ class MainWindow(QMainWindow):
 
     def _status_row(self) -> QWidget:
         widget = QFrame()
-        widget.setProperty("class", "softGroup")
+        widget.setProperty("class", "statusGroup")
         layout = QHBoxLayout(widget)
-        layout.setContentsMargins(10, 7, 10, 7)
-        layout.setSpacing(10)
+        layout.setContentsMargins(8, 6, 8, 6)
+        layout.setSpacing(7)
         layout.addWidget(self.active_check)
         layout.addWidget(self.vegetarian_check)
         layout.addWidget(self.vegan_check)
         layout.addStretch(1)
+        spicy_wrap = QWidget()
+        spicy_layout = QHBoxLayout(spicy_wrap)
+        spicy_layout.setContentsMargins(0, 0, 0, 0)
+        spicy_layout.setSpacing(7)
         spicy_label = QLabel("Schärfe")
-        spicy_label.setProperty("class", "hint")
-        layout.addWidget(spicy_label)
-        layout.addWidget(self.spicy_spin)
+        spicy_label.setProperty("class", "statusMeta")
+        spicy_layout.addWidget(spicy_label)
+        spicy_layout.addWidget(self.spicy_spin)
+        layout.addWidget(spicy_wrap)
         return widget
 
     def _money_spin(self) -> QDoubleSpinBox:

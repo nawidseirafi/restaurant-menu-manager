@@ -51,7 +51,7 @@ def test_settings_menu_url_defaults_and_migrates(session):
     settings = repo.get_settings()
     assert settings.menu_url == "https://www.tacomex.de/menu"
 
-    settings.menu_url = "https://menu.tacomex.de"
+    settings.menu_url = "https://tacomex.de/menu"
     session.commit()
     migrated = repo.get_settings()
     assert migrated.menu_url == "https://www.tacomex.de/menu"

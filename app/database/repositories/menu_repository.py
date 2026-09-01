@@ -127,7 +127,7 @@ class MenuRepository:
             settings = Settings(id=1, menu_url="https://www.tacomex.de/menu")
             self.session.add(settings)
             self.session.commit()
-        elif not settings.menu_url or settings.menu_url.strip() == "https://menu.tacomex.de":
+        elif not settings.menu_url or settings.menu_url.strip() == "https://.tacomex.de/menu":
             # Migrate installations that still use the former default QR target.
             settings.menu_url = "https://www.tacomex.de/menu"
             self.session.commit()

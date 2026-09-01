@@ -23,29 +23,24 @@ class SettingsDialog(QDialog):
         self.settings = settings
         self.setWindowTitle("Einstellungen")
         self.setModal(True)
-        self.setMinimumWidth(560)
-        self.resize(620, 260)
+        self.setFixedSize(620, 300)
         self._build_ui()
 
     def _build_ui(self) -> None:
         root = QVBoxLayout(self)
-        root.setContentsMargins(24, 24, 24, 20)
-        root.setSpacing(16)
+        root.setContentsMargins(28, 24, 28, 22)
+        root.setSpacing(12)
 
         title = QLabel("Einstellungen")
-        title.setProperty("class", "sectionTitle")
+        title.setProperty("class", "dialogTitle")
         root.addWidget(title)
 
-        description = QLabel(
-            "Diese Adresse wird für den QR-Code verwendet. "
-            "Änderungen gelten automatisch für zukünftige QR-Code-Exporte."
-        )
-        description.setWordWrap(True)
-        description.setProperty("class", "secondaryText")
-        root.addWidget(description)
+        subtitle = QLabel("QR-Code")
+        subtitle.setProperty("class", "eyebrow")
+        root.addWidget(subtitle)
 
         field_group = QVBoxLayout()
-        field_group.setSpacing(7)
+        field_group.setSpacing(6)
 
         label = QLabel("Menü-URL")
         label.setProperty("class", "fieldLabel")
@@ -54,11 +49,13 @@ class SettingsDialog(QDialog):
         self.menu_url_edit = QLineEdit()
         self.menu_url_edit.setPlaceholderText(DEFAULT_MENU_URL)
         self.menu_url_edit.setText((self.settings.menu_url or DEFAULT_MENU_URL).strip())
+        self.menu_url_edit.setFixedHeight(40)
+        self.menu_url_edit.setProperty("class", "settingsUrlField")
         self.menu_url_edit.selectAll()
         field_group.addWidget(self.menu_url_edit)
 
-        hint = QLabel("Beispiel: https://www.tacomex.de/menu")
-        hint.setProperty("class", "secondaryText")
+        hint = QLabel("Diese Adresse wird für neu erzeugte QR-Codes verwendet.")
+        hint.setProperty("class", "hint")
         field_group.addWidget(hint)
         root.addLayout(field_group)
 
@@ -69,11 +66,13 @@ class SettingsDialog(QDialog):
 
         cancel_button = QPushButton("Abbrechen")
         cancel_button.setProperty("role", "secondary")
+        cancel_button.setFixedHeight(36)
         cancel_button.clicked.connect(self.reject)
         buttons.addWidget(cancel_button)
 
         save_button = QPushButton("Speichern")
-        save_button.setProperty("role", "primary")
+        save_button.setProperty("role", "accent")
+        save_button.setFixedHeight(36)
         save_button.setDefault(True)
         save_button.clicked.connect(self._save)
         buttons.addWidget(save_button)

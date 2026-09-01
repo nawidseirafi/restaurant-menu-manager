@@ -137,6 +137,9 @@ def global_stylesheet() -> str:
     QLabel[class="fieldLabel"] {{ color: {c['muted']}; font-size: 11px; font-weight: 600; padding-bottom: 2px; }}
     QLabel[class="sectionLabel"] {{ color: #C7CCD1; font-size: 11px; font-weight: 650; }}
     QLabel[class="hint"] {{ color: #747C84; font-size: 10px; }}
+    QLabel[class="dialogTitle"] {{ color: #F2F3F4; font-size: 19px; font-weight: 650; }}
+    QLabel[class="eyebrow"] {{ color: #7F878F; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }}
+    QLabel[class="statusMeta"] {{ color: #858D95; font-size: 11px; font-weight: 600; }}
 
     QFrame[class="panel"] {{
         background: {c['surface']};
@@ -147,6 +150,11 @@ def global_stylesheet() -> str:
         background: #1A1E22;
         border: 1px solid #262C31;
         border-radius: 8px;
+    }}
+    QFrame[class="statusGroup"] {{
+        background: #181C1F;
+        border: 1px solid #272D32;
+        border-radius: 9px;
     }}
 
     QSplitter {{ background: {c['window']}; }}
@@ -172,6 +180,19 @@ def global_stylesheet() -> str:
         background-color: #1A1D20;
         color: {c['disabled']};
         border-color: #262B30;
+    }}
+
+    QLineEdit[class="settingsUrlField"] {{
+        min-height: 40px; max-height: 40px;
+        padding: 0 12px;
+        font-size: 12px;
+        background: #20252A;
+        border: 1px solid #31383E;
+        border-radius: 8px;
+    }}
+    QLineEdit[class="settingsUrlField"]:focus {{
+        border-color: {c['orange']};
+        background: #23292E;
     }}
 
     QLineEdit[class="searchField"] {{
@@ -212,6 +233,17 @@ def global_stylesheet() -> str:
     }}
 
     QSpinBox, QDoubleSpinBox {{ padding-right: 10px; }}
+    QSpinBox[class="compactSpin"] {{
+        min-width: 52px; max-width: 52px;
+        min-height: 34px; max-height: 34px;
+        padding: 0;
+        background: #20252A;
+        border: 1px solid #30373D;
+        border-radius: 7px;
+        font-size: 12px;
+        font-weight: 650;
+    }}
+    QSpinBox[class="compactSpin"]:focus {{ border-color: {c['orange']}; }}
     QSpinBox::up-button, QSpinBox::down-button, QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {{
         width: 0px; height: 0px; border: 0; background: transparent;
     }}
@@ -243,6 +275,38 @@ def global_stylesheet() -> str:
     QTableWidget::item:disabled {{ color: {c['disabled']}; }}
 
     QCheckBox {{ color: #D9DDE0; spacing: 7px; background: transparent; min-height: 26px; }}
+    QCheckBox[class="statusChip"] {{
+        color: #B7BDC3;
+        background: #1D2226;
+        border: 1px solid #2D343A;
+        border-radius: 7px;
+        padding: 5px 10px 5px 8px;
+        spacing: 7px;
+        min-height: 22px;
+        font-size: 11px;
+        font-weight: 550;
+    }}
+    QCheckBox[class="statusChip"]:hover {{
+        background: #242A2F;
+        border-color: #3A4249;
+        color: #E6E8EA;
+    }}
+    QCheckBox[class="statusChip"]:checked {{
+        background: #20271E;
+        border-color: #465B2B;
+        color: #E2EAD8;
+    }}
+    QCheckBox[class="statusChip"]::indicator {{
+        width: 11px; height: 11px;
+        border-radius: 6px;
+        border: 1px solid #4A5259;
+        background: #252B30;
+    }}
+    QCheckBox[class="statusChip"]::indicator:hover {{ border-color: #737C84; }}
+    QCheckBox[class="statusChip"]::indicator:checked {{
+        background: {c['green']};
+        border-color: {c['green']};
+    }}
     QCheckBox::indicator {{
         width: 16px; height: 16px; border-radius: 4px;
         border: 1px solid #3B4249; background: #22272C;
