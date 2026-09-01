@@ -8,6 +8,7 @@ from PySide6.QtCore import QLocale, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QKeySequence, QPixmap, QShortcut
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QAbstractSpinBox,
     QApplication,
     QCheckBox,
     QComboBox,
@@ -245,6 +246,7 @@ class MainWindow(QMainWindow):
 
         menu_button = QToolButton()
         menu_button.setText("Menü")
+        menu_button.setProperty("class", "menuButton")
         menu_button.setPopupMode(QToolButton.InstantPopup)
         menu_button.setMenu(menu)
         menu_button.setToolTip("Menü")
@@ -262,6 +264,8 @@ class MainWindow(QMainWindow):
     def _category_panel(self) -> QFrame:
         panel = self._panel_frame()
         layout = QVBoxLayout(panel)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(10)
         self.category_title = self._panel_title("KATEGORIEN")
         layout.addWidget(self._panel_header(self.category_title, self.new_category, "Kategorie hinzufügen"))
         self.category_table = ReorderTableWidget(0, 2)
@@ -287,10 +291,12 @@ class MainWindow(QMainWindow):
     def _items_panel(self) -> QFrame:
         panel = self._panel_frame()
         layout = QVBoxLayout(panel)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(10)
         self.items_title = self._panel_title("GERICHTE")
         self.item_search_edit = QLineEdit()
         self.item_search_edit.setPlaceholderText("Gericht suchen…")
-        self.item_search_edit.setClearButtonEnabled(True)
+        self.item_search_edit.setClearButtonEnabled(False)
         self.item_search_edit.setFixedWidth(310)
         self.item_search_edit.setProperty("class", "searchField")
         self.item_search_edit.textChanged.connect(self.on_search_changed)
@@ -304,7 +310,7 @@ class MainWindow(QMainWindow):
         self.items_table.setDefaultDropAction(Qt.MoveAction)
         self.items_table.setDragDropOverwriteMode(False)
         self.items_table.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.items_table.setAlternatingRowColors(True)
+        self.items_table.setAlternatingRowColors(False)
         self.items_table.verticalHeader().setVisible(False)
         self.items_table.horizontalHeader().setStretchLastSection(False)
         self.items_table.horizontalHeader().setDefaultAlignment(Qt.AlignLeft | Qt.AlignVCenter)
@@ -321,21 +327,16 @@ class MainWindow(QMainWindow):
     def _editor_panel(self) -> QScrollArea:
         frame = self._panel_frame()
         layout = QVBoxLayout(frame)
+        layout.setContentsMargins(16, 14, 16, 18)
+        layout.setSpacing(14)
         layout.addWidget(self._panel_title("GERICHT BEARBEITEN"))
-
-        form = QFormLayout()
-        form.setLabelAlignment(Qt.AlignLeft)
-        form.setFormAlignment(Qt.AlignTop)
-        form.setHorizontalSpacing(18)
-        form.setVerticalSpacing(10)
-        form.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
 
         self.name_edit = QLineEdit()
         self.description_edit = QTextEdit()
-        self.description_edit.setFixedHeight(82)
+        self.description_edit.setFixedHeight(78)
         self.price_spin = self._money_spin()
         self.second_price_spin = self._money_spin()
-        self.second_price_spin.setSpecialValueText("-")
+        self.second_price_spin.setSpecialValueText("—")
         self.second_price_label_edit = QLineEdit()
         self.category_combo = QComboBox()
         self.active_check = QCheckBox("Aktiv")
@@ -344,14 +345,20 @@ class MainWindow(QMainWindow):
         self.spicy_spin = QSpinBox()
         self.spicy_spin.setRange(0, 5)
         self.spicy_spin.setSingleStep(1)
+        self.spicy_spin.setButtonSymbols(QAbstractSpinBox.NoButtons)
+        self.spicy_spin.setFixedWidth(58)
+        self.spicy_spin.setAlignment(Qt.AlignCenter)
         self.allergens_edit = QLineEdit()
         self.additives_edit = QLineEdit()
+
         self.image_path_edit = ImagePathEdit()
+        self.image_path_edit.setPlaceholderText("Bild auswählen oder hier ablegen")
         self.image_path_edit.clicked.connect(self.select_image)
         self.image_path_edit.imageDropped.connect(self.set_image_path)
-        self.image_preview = ImagePreviewLabel("Kein Bild")
+        self.image_preview = ImagePreviewLabel("Bild hier ablegen\noder klicken")
         self.image_preview.setProperty("class", "imagePreview")
-        self.image_preview.setFixedSize(150, 92)
+        self.image_preview.setMinimumHeight(112)
+        self.image_preview.setMaximumHeight(150)
         self.image_preview.setAlignment(Qt.AlignCenter)
         self.image_preview.setToolTip("Bild auswählen oder hier ablegen")
         self.image_preview.clicked.connect(self.select_image)
@@ -361,45 +368,72 @@ class MainWindow(QMainWindow):
         self.remove_image_button.setToolTip("Bild entfernen")
         self.remove_image_button.setProperty("class", "iconButton")
         self.remove_image_button.clicked.connect(self.remove_image)
-        image_path_row = QHBoxLayout()
-        image_path_row.setContentsMargins(0, 0, 0, 0)
-        image_path_row.addWidget(self.image_path_edit, 1)
-        image_path_row.addWidget(self.remove_image_button)
-        image_box = QVBoxLayout()
-        image_box.addLayout(image_path_row)
-        image_box.addWidget(self.image_preview)
-        self.notes_edit = QTextEdit()
-        self.notes_edit.setFixedHeight(74)
 
-        form.addRow(self._required_label("Name *"), self.name_edit)
-        form.addRow("Beschreibung", self.description_edit)
-        form.addRow(self._required_label("Preis *"), self.price_spin)
-        form.addRow("Zweiter Preis", self.second_price_spin)
-        form.addRow("Label zweiter Preis", self.second_price_label_edit)
-        form.addRow(self._required_label("Kategorie *"), self.category_combo)
-        form.addRow("Status", self._status_row())
-        form.addRow("Allergene", self.allergens_edit)
-        form.addRow("Zusatzstoffe", self.additives_edit)
-        form.addRow("Bild", image_box)
-        form.addRow("Notizen", self.notes_edit)
-        layout.addLayout(form)
+        image_header = QHBoxLayout()
+        image_header.setContentsMargins(0, 0, 0, 0)
+        image_header.addWidget(self.image_path_edit, 1)
+        image_header.addWidget(self.remove_image_button)
+        image_box = QWidget()
+        image_layout = QVBoxLayout(image_box)
+        image_layout.setContentsMargins(0, 0, 0, 0)
+        image_layout.setSpacing(8)
+        image_layout.addLayout(image_header)
+        image_layout.addWidget(self.image_preview)
+
+        self.notes_edit = QTextEdit()
+        self.notes_edit.setFixedHeight(72)
+
+        def add_field(label_text: str, field: QWidget, required: bool = False) -> None:
+            label = QLabel(label_text + (" *" if required else ""))
+            label.setProperty("class", "fieldLabel")
+            if required:
+                label.setStyleSheet("color: #D9B45B;")
+            layout.addWidget(label)
+            layout.addWidget(field)
+
+        add_field("Name", self.name_edit, True)
+        add_field("Beschreibung", self.description_edit)
+
+        price_row = QWidget()
+        price_layout = QHBoxLayout(price_row)
+        price_layout.setContentsMargins(0, 0, 0, 0)
+        price_layout.setSpacing(10)
+        price_col = QVBoxLayout()
+        price_col.setSpacing(5)
+        price_label = QLabel("Preis *")
+        price_label.setProperty("class", "fieldLabel")
+        price_label.setStyleSheet("color: #D9B45B;")
+        price_col.addWidget(price_label)
+        price_col.addWidget(self.price_spin)
+        second_col = QVBoxLayout()
+        second_col.setSpacing(5)
+        second_label = QLabel("Zweiter Preis")
+        second_label.setProperty("class", "fieldLabel")
+        second_col.addWidget(second_label)
+        second_col.addWidget(self.second_price_spin)
+        price_layout.addLayout(price_col, 1)
+        price_layout.addLayout(second_col, 1)
+        layout.addWidget(price_row)
+
+        add_field("Label zweiter Preis", self.second_price_label_edit)
+        add_field("Kategorie", self.category_combo, True)
+
+        status_label = QLabel("Status")
+        status_label.setProperty("class", "fieldLabel")
+        layout.addWidget(status_label)
+        layout.addWidget(self._status_row())
+
+        add_field("Allergene", self.allergens_edit)
+        add_field("Zusatzstoffe", self.additives_edit)
+        add_field("Bild", image_box)
+        add_field("Notizen", self.notes_edit)
         layout.addStretch(1)
 
         for widget in [
-            self.name_edit,
-            self.description_edit,
-            self.price_spin,
-            self.second_price_spin,
-            self.second_price_label_edit,
-            self.category_combo,
-            self.active_check,
-            self.vegetarian_check,
-            self.vegan_check,
-            self.spicy_spin,
-            self.allergens_edit,
-            self.additives_edit,
-            self.image_path_edit,
-            self.notes_edit,
+            self.name_edit, self.description_edit, self.price_spin, self.second_price_spin,
+            self.second_price_label_edit, self.category_combo, self.active_check,
+            self.vegetarian_check, self.vegan_check, self.spicy_spin, self.allergens_edit,
+            self.additives_edit, self.image_path_edit, self.notes_edit,
         ]:
             self._connect_dirty(widget)
         self.image_path_edit.textChanged.connect(lambda *_: self._update_image_preview())
@@ -457,16 +491,19 @@ class MainWindow(QMainWindow):
         return label
 
     def _status_row(self) -> QWidget:
-        widget = QWidget()
+        widget = QFrame()
+        widget.setProperty("class", "softGroup")
         layout = QHBoxLayout(widget)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(12)
+        layout.setContentsMargins(10, 7, 10, 7)
+        layout.setSpacing(10)
         layout.addWidget(self.active_check)
         layout.addWidget(self.vegetarian_check)
         layout.addWidget(self.vegan_check)
-        layout.addWidget(QLabel("Schärfe"))
-        layout.addWidget(self.spicy_spin)
         layout.addStretch(1)
+        spicy_label = QLabel("Schärfe")
+        spicy_label.setProperty("class", "hint")
+        layout.addWidget(spicy_label)
+        layout.addWidget(self.spicy_spin)
         return widget
 
     def _money_spin(self) -> QDoubleSpinBox:
@@ -476,6 +513,7 @@ class MainWindow(QMainWindow):
         spin.setSingleStep(0.50)
         spin.setSuffix(" EUR")
         spin.setLocale(QLocale(QLocale.German, QLocale.Germany))
+        spin.setButtonSymbols(QAbstractSpinBox.NoButtons)
         return spin
 
     def _connect_dirty(self, widget: QWidget) -> None:
