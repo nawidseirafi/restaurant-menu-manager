@@ -4,7 +4,7 @@ import asyncio
 import logging
 from pathlib import Path
 
-from PySide6.QtCore import QLocale, QSize, Qt
+from PySide6.QtCore import QLocale, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QKeySequence, QPixmap, QShortcut
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -27,7 +27,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSizePolicy,
-    QSlider,
+    QSpinBox,
     QSplitter,
     QStyle,
     QTableWidget,
@@ -53,6 +53,98 @@ from app.services.qr_exporter import QrExporter
 
 LOGGER = logging.getLogger(__name__)
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp"}
+
+
+class ReorderTableWidget(QTableWidget):
+    rowsReordered = Signal(list)
+
+    def dropEvent(self, event) -> None:
+        before = self._row_ids()
+        super().dropEvent(event)
+        after = self._row_ids()
+        if after and after != before:
+            self.rowsReordered.emit(after)
+
+    def _row_ids(self) -> list[int]:
+        ids = []
+        for row in range(self.rowCount()):
+            item = self.item(row, 0)
+            if item:
+                ids.append(item.data(Qt.UserRole))
+        return ids
+
+
+class ImagePathEdit(QLineEdit):
+    imageDropped = Signal(str)
+    clicked = Signal()
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.setReadOnly(True)
+        self.setAcceptDrops(True)
+        self.setPlaceholderText("Bild auswählen oder hier ablegen")
+
+    def mousePressEvent(self, event) -> None:
+        if event.button() == Qt.LeftButton:
+            self.clicked.emit()
+        super().mousePressEvent(event)
+
+    def dragEnterEvent(self, event) -> None:
+        if self._image_path_from_event(event):
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event) -> None:
+        path = self._image_path_from_event(event)
+        if path:
+            self.imageDropped.emit(path)
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def _image_path_from_event(self, event) -> str | None:
+        for url in event.mimeData().urls():
+            path = Path(url.toLocalFile())
+            if path.suffix.lower() in IMAGE_SUFFIXES:
+                return str(path)
+        return None
+
+
+class ImagePreviewLabel(QLabel):
+    imageDropped = Signal(str)
+    clicked = Signal()
+
+    def __init__(self, text: str) -> None:
+        super().__init__(text)
+        self.setAcceptDrops(True)
+
+    def mousePressEvent(self, event) -> None:
+        if event.button() == Qt.LeftButton:
+            self.clicked.emit()
+        super().mousePressEvent(event)
+
+    def dragEnterEvent(self, event) -> None:
+        if self._image_path_from_event(event):
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event) -> None:
+        path = self._image_path_from_event(event)
+        if path:
+            self.imageDropped.emit(path)
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def _image_path_from_event(self, event) -> str | None:
+        for url in event.mimeData().urls():
+            path = Path(url.toLocalFile())
+            if path.suffix.lower() in IMAGE_SUFFIXES:
+                return str(path)
+        return None
 
 
 class MainWindow(QMainWindow):
@@ -65,6 +157,10 @@ class MainWindow(QMainWindow):
         self.current_item_id: int | None = None
         self._loading = False
         self._dirty = False
+        self._autosave_timer = QTimer(self)
+        self._autosave_timer.setSingleShot(True)
+        self._autosave_timer.setInterval(450)
+        self._autosave_timer.timeout.connect(self._perform_autosave)
 
         self.setWindowTitle("TacoMex Menu Manager")
         self.setMinimumSize(1120, 720)
@@ -106,27 +202,47 @@ class MainWindow(QMainWindow):
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         toolbar.addWidget(spacer)
 
-        self._add_toolbar_button(toolbar, "new_item", "Neues Gericht", QStyle.SP_FileIcon, self.new_item, "primary")
-        self._add_toolbar_button(toolbar, "save", "Speichern", QStyle.SP_DialogSaveButton, self.save_item, "primary")
-        self._add_toolbar_button(toolbar, "preview", "Vorschau", QStyle.SP_FileDialogContentsView, self.preview_html, "accent")
-        self._add_toolbar_button(toolbar, "pdf", "PDF", QStyle.SP_FileDialogInfoView, self.export_pdf, "accent")
-        toolbar.addSeparator()
+        menu = QMenu(self)
+        export_menu = menu.addMenu("Export")
+        for label, key, handler in [
+            ("Vorschau", "preview", self.preview_html),
+            ("PDF erstellen", "pdf", self.export_pdf),
+            ("HTML erstellen", "html", self.export_html),
+            ("QR-Code erstellen", "qr", self.export_qr),
+        ]:
+            action = QAction(label, self)
+            action.triggered.connect(handler)
+            export_menu.addAction(action)
+            self.actions[key] = action
 
-        self._add_toolbar_menu(toolbar, "Bearbeiten", [
-            ("Neue Kategorie", "new_category", self.new_category),
-            ("Duplizieren", "duplicate", self.duplicate_item),
-            ("Preise bearbeiten", "prices", self.edit_prices),
-        ])
-        self._add_toolbar_menu(toolbar, "Export", [
-            ("HTML exportieren", "html", self.export_html),
-            ("QR-Code", "qr", self.export_qr),
-        ])
-        self._add_toolbar_menu(toolbar, "Daten", [
-            ("Backup", "backup", self.create_backup),
-            ("Wiederherstellen", "restore", self.restore_backup),
-            ("JSON Export", "json_export", self.export_json),
-            ("JSON Import", "json_import", self.import_json),
-        ])
+        data_menu = menu.addMenu("Daten")
+        for label, key, handler in [
+            ("Backup erstellen", "backup", self.create_backup),
+            ("Backup wiederherstellen", "restore", self.restore_backup),
+            ("JSON exportieren", "json_export", self.export_json),
+            ("JSON importieren", "json_import", self.import_json),
+        ]:
+            action = QAction(label, self)
+            action.triggered.connect(handler)
+            data_menu.addAction(action)
+            self.actions[key] = action
+
+        app_menu = menu.addMenu("Anwendung")
+        prices_action = QAction("Preise bearbeiten", self)
+        prices_action.triggered.connect(self.edit_prices)
+        app_menu.addAction(prices_action)
+        self.actions["prices"] = prices_action
+        quit_action = QAction("Beenden", self)
+        quit_action.triggered.connect(self.close)
+        app_menu.addAction(quit_action)
+        self.actions["quit"] = quit_action
+
+        menu_button = QToolButton()
+        menu_button.setText("Menü")
+        menu_button.setPopupMode(QToolButton.InstantPopup)
+        menu_button.setMenu(menu)
+        menu_button.setToolTip("Menü")
+        toolbar.addWidget(menu_button)
         self._add_toolbar_button(toolbar, "settings", "Einstellungen", QStyle.SP_FileDialogDetailedView, self.open_settings)
 
     def _add_toolbar_button(self, toolbar: QToolBar, key: str, text: str, icon: QStyle.StandardPixmap, handler, role: str = "secondary") -> None:
@@ -137,60 +253,45 @@ class MainWindow(QMainWindow):
         toolbar.addWidget(button)
         self.actions[key] = button
 
-    def _add_toolbar_menu(self, toolbar: QToolBar, text: str, items: list[tuple[str, str, object]]) -> None:
-        menu = QMenu(self)
-        for label, key, handler in items:
-            action = QAction(label, self)
-            action.triggered.connect(handler)
-            menu.addAction(action)
-            self.actions[key] = action
-        button = QToolButton()
-        button.setText(text)
-        button.setPopupMode(QToolButton.InstantPopup)
-        button.setMenu(menu)
-        button.setToolTip(text)
-        toolbar.addWidget(button)
-
     def _category_panel(self) -> QFrame:
         panel = self._panel_frame()
         layout = QVBoxLayout(panel)
         self.category_title = self._panel_title("KATEGORIEN")
-        self.category_table = QTableWidget(0, 2)
+        layout.addWidget(self._panel_header(self.category_title, self.new_category, "Kategorie hinzufügen"))
+        self.category_table = ReorderTableWidget(0, 2)
         self.category_table.setHorizontalHeaderLabels(["Kategorie", ""])
         self.category_table.horizontalHeader().setVisible(False)
         self.category_table.verticalHeader().setVisible(False)
         self.category_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.category_table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.category_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.category_table.setDragDropMode(QAbstractItemView.InternalMove)
+        self.category_table.setDefaultDropAction(Qt.MoveAction)
+        self.category_table.setDragDropOverwriteMode(False)
+        self.category_table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.category_table.setShowGrid(False)
         self.category_table.horizontalHeader().setStretchLastSection(False)
         self.category_table.setColumnWidth(1, 44)
         self.category_table.itemSelectionChanged.connect(self.on_category_selected)
-        layout.addWidget(self.category_title)
+        self.category_table.customContextMenuRequested.connect(self.show_category_menu)
+        self.category_table.rowsReordered.connect(self.reorder_categories)
         layout.addWidget(self.category_table, 1)
-        layout.addLayout(self._button_row([
-            ("Neue Kategorie", "new_category_button", self.new_category, "secondary"),
-            ("Umbenennen", "rename_category_button", self.rename_category, "secondary"),
-        ]))
-        layout.addLayout(self._button_row([
-            ("Hoch", "move_category_up_button", lambda: self.move_category(-1), "secondary"),
-            ("Runter", "move_category_down_button", lambda: self.move_category(1), "secondary"),
-            ("Loeschen", "delete_category_button", self.delete_category, "danger"),
-        ]))
-        self.toggle_category_button = QPushButton("Aktiv/Inaktiv")
-        self.toggle_category_button.clicked.connect(self.toggle_category)
-        self.toggle_category_button.hide()
         return panel
 
     def _items_panel(self) -> QFrame:
         panel = self._panel_frame()
         layout = QVBoxLayout(panel)
         self.items_title = self._panel_title("GERICHTE")
-        self.items_table = QTableWidget(0, 6)
+        layout.addWidget(self._panel_header(self.items_title, self.new_item, "Gericht hinzufügen"))
+        self.items_table = ReorderTableWidget(0, 6)
         self.items_table.setHorizontalHeaderLabels(["Name", "Preis", "Aktiv", "Veg.", "Vegan", "Scharf"])
         self.items_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.items_table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.items_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.items_table.setDragDropMode(QAbstractItemView.InternalMove)
+        self.items_table.setDefaultDropAction(Qt.MoveAction)
+        self.items_table.setDragDropOverwriteMode(False)
+        self.items_table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.items_table.setAlternatingRowColors(True)
         self.items_table.verticalHeader().setVisible(False)
         self.items_table.horizontalHeader().setStretchLastSection(False)
@@ -200,15 +301,9 @@ class MainWindow(QMainWindow):
             self.items_table.horizontalHeader().setSectionResizeMode(column, QHeaderView.ResizeToContents)
         self.items_table.itemSelectionChanged.connect(self.on_item_selection_changed)
         self.items_table.doubleClicked.connect(lambda *_: self.name_edit.setFocus())
-        layout.addWidget(self.items_title)
+        self.items_table.customContextMenuRequested.connect(self.show_item_menu)
+        self.items_table.rowsReordered.connect(self.reorder_items)
         layout.addWidget(self.items_table, 1)
-        layout.addLayout(self._button_row([
-            ("Hinzufuegen", "add_item_button", self.new_item, "primary"),
-            ("Duplizieren", "duplicate_item_button", self.duplicate_item, "secondary"),
-            ("Loeschen", "delete_item_button", self.delete_item, "danger"),
-            ("Hoch", "move_item_up_button", lambda: self.move_item(-1), "secondary"),
-            ("Runter", "move_item_down_button", lambda: self.move_item(1), "secondary"),
-        ]))
         return panel
 
     def _editor_panel(self) -> QScrollArea:
@@ -228,38 +323,39 @@ class MainWindow(QMainWindow):
         self.description_edit.setFixedHeight(82)
         self.price_spin = self._money_spin()
         self.second_price_spin = self._money_spin()
-        self.second_price_spin.setSpecialValueText("kein zweiter Preis")
+        self.second_price_spin.setSpecialValueText("-")
         self.second_price_label_edit = QLineEdit()
         self.category_combo = QComboBox()
         self.active_check = QCheckBox("Aktiv")
         self.vegetarian_check = QCheckBox("Vegetarisch")
         self.vegan_check = QCheckBox("Vegan")
-        self.spicy_slider = QSlider(Qt.Horizontal)
-        self.spicy_slider.setRange(0, 5)
-        self.spicy_value_label = QLabel("0")
-        spicy_row = QHBoxLayout()
-        spicy_row.addWidget(self.spicy_slider, 1)
-        spicy_row.addWidget(self.spicy_value_label)
+        self.spicy_spin = QSpinBox()
+        self.spicy_spin.setRange(0, 5)
+        self.spicy_spin.setSingleStep(1)
         self.allergens_edit = QLineEdit()
         self.additives_edit = QLineEdit()
-        self.image_path_edit = QLineEdit()
-        self.image_preview = QLabel("Kein Bild")
+        self.image_path_edit = ImagePathEdit()
+        self.image_path_edit.clicked.connect(self.select_image)
+        self.image_path_edit.imageDropped.connect(self.set_image_path)
+        self.image_preview = ImagePreviewLabel("Kein Bild")
+        self.image_preview.setProperty("class", "imagePreview")
         self.image_preview.setFixedSize(150, 92)
         self.image_preview.setAlignment(Qt.AlignCenter)
-        self.image_preview.setStyleSheet("border: 1px solid #34383d; border-radius: 5px; color: #b8b8b8;")
-        image_buttons = QHBoxLayout()
-        self.select_image_button = QPushButton("Bild waehlen")
-        self.remove_image_button = QPushButton("Entfernen")
-        mark_button(self.select_image_button, "secondary")
-        mark_button(self.remove_image_button, "danger")
-        self.select_image_button.clicked.connect(self.select_image)
+        self.image_preview.setToolTip("Bild auswählen oder hier ablegen")
+        self.image_preview.clicked.connect(self.select_image)
+        self.image_preview.imageDropped.connect(self.set_image_path)
+        self.remove_image_button = QToolButton()
+        self.remove_image_button.setText("×")
+        self.remove_image_button.setToolTip("Bild entfernen")
+        self.remove_image_button.setProperty("class", "iconButton")
         self.remove_image_button.clicked.connect(self.remove_image)
-        image_buttons.addWidget(self.select_image_button)
-        image_buttons.addWidget(self.remove_image_button)
+        image_path_row = QHBoxLayout()
+        image_path_row.setContentsMargins(0, 0, 0, 0)
+        image_path_row.addWidget(self.image_path_edit, 1)
+        image_path_row.addWidget(self.remove_image_button)
         image_box = QVBoxLayout()
-        image_box.addWidget(self.image_path_edit)
+        image_box.addLayout(image_path_row)
         image_box.addWidget(self.image_preview)
-        image_box.addLayout(image_buttons)
         self.notes_edit = QTextEdit()
         self.notes_edit.setFixedHeight(74)
 
@@ -269,8 +365,7 @@ class MainWindow(QMainWindow):
         form.addRow("Zweiter Preis", self.second_price_spin)
         form.addRow("Label zweiter Preis", self.second_price_label_edit)
         form.addRow(self._required_label("Kategorie *"), self.category_combo)
-        form.addRow("Status", self._check_row())
-        form.addRow("Schaerfe 0-5", spicy_row)
+        form.addRow("Status", self._status_row())
         form.addRow("Allergene", self.allergens_edit)
         form.addRow("Zusatzstoffe", self.additives_edit)
         form.addRow("Bild", image_box)
@@ -288,14 +383,13 @@ class MainWindow(QMainWindow):
             self.active_check,
             self.vegetarian_check,
             self.vegan_check,
-            self.spicy_slider,
+            self.spicy_spin,
             self.allergens_edit,
             self.additives_edit,
             self.image_path_edit,
             self.notes_edit,
         ]:
             self._connect_dirty(widget)
-        self.spicy_slider.valueChanged.connect(lambda value: self.spicy_value_label.setText(str(value)))
         self.image_path_edit.textChanged.connect(lambda *_: self._update_image_preview())
 
         scroll = QScrollArea()
@@ -314,29 +408,36 @@ class MainWindow(QMainWindow):
         label.setProperty("class", "panelTitle")
         return label
 
+    def _panel_header(self, title: QLabel, add_handler, tooltip: str) -> QWidget:
+        widget = QWidget()
+        layout = QHBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+        layout.addWidget(title)
+        layout.addStretch(1)
+        button = QToolButton()
+        button.setText("+")
+        button.setToolTip(tooltip)
+        button.setProperty("class", "addButton")
+        button.clicked.connect(add_handler)
+        layout.addWidget(button)
+        return widget
+
     def _required_label(self, text: str) -> QLabel:
         label = QLabel(text)
         label.setProperty("class", "required")
         return label
 
-    def _button_row(self, definitions: list[tuple[str, str, object, str]]) -> QHBoxLayout:
-        row = QHBoxLayout()
-        row.setSpacing(8)
-        for text, attr, handler, role in definitions:
-            button = QPushButton(text)
-            button.clicked.connect(handler)
-            mark_button(button, role)
-            setattr(self, attr, button)
-            row.addWidget(button)
-        return row
-
-    def _check_row(self) -> QWidget:
+    def _status_row(self) -> QWidget:
         widget = QWidget()
         layout = QHBoxLayout(widget)
         layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(12)
         layout.addWidget(self.active_check)
         layout.addWidget(self.vegetarian_check)
         layout.addWidget(self.vegan_check)
+        layout.addWidget(QLabel("Schärfe"))
+        layout.addWidget(self.spicy_spin)
         layout.addStretch(1)
         return widget
 
@@ -360,12 +461,14 @@ class MainWindow(QMainWindow):
             widget.currentIndexChanged.connect(self._mark_dirty)
         elif isinstance(widget, QCheckBox):
             widget.toggled.connect(self._mark_dirty)
-        elif isinstance(widget, QSlider):
+        elif isinstance(widget, QSpinBox):
             widget.valueChanged.connect(self._mark_dirty)
 
     def _install_shortcuts(self) -> None:
         QShortcut(QKeySequence.Save, self, activated=self.save_item)
         QShortcut(QKeySequence.Delete, self, activated=self.delete_selected)
+        QShortcut(QKeySequence("F2"), self, activated=self.rename_category)
+        QShortcut(QKeySequence("Ctrl+D"), self, activated=self.duplicate_item)
 
     def reload_categories(self, select_category_id: int | None = None) -> None:
         self._loading = True
@@ -474,7 +577,7 @@ class MainWindow(QMainWindow):
         self.active_check.setChecked(item.active)
         self.vegetarian_check.setChecked(item.vegetarian)
         self.vegan_check.setChecked(item.vegan)
-        self.spicy_slider.setValue(item.spicy_level)
+        self.spicy_spin.setValue(item.spicy_level)
         self.allergens_edit.setText(item.allergens or "")
         self.additives_edit.setText(item.additives or "")
         self.image_path_edit.setText(item.image_path or "")
@@ -494,7 +597,7 @@ class MainWindow(QMainWindow):
         self.active_check.setChecked(False)
         self.vegetarian_check.setChecked(False)
         self.vegan_check.setChecked(False)
-        self.spicy_slider.setValue(0)
+        self.spicy_spin.setValue(0)
         self._update_image_preview()
         self._loading = False
         self._dirty = False
@@ -524,6 +627,27 @@ class MainWindow(QMainWindow):
             self._run_user_action(lambda: self.repo.save_category(category), "Kategorie aktualisiert")
             self.reload_categories(category.id)
 
+    def show_category_menu(self, position) -> None:
+        row = self.category_table.rowAt(position.y())
+        if row >= 0:
+            self.category_table.selectRow(row)
+        category = self._selected_category()
+        if not category:
+            return
+        menu = QMenu(self)
+        rename_action = menu.addAction("Umbenennen")
+        toggle_action = menu.addAction("Deaktivieren" if category.active else "Aktivieren")
+        menu.addSeparator()
+        delete_action = menu.addAction("Löschen")
+        delete_action.setIcon(self.style().standardIcon(QStyle.SP_MessageBoxCritical))
+        selected = menu.exec(self.category_table.viewport().mapToGlobal(position))
+        if selected == rename_action:
+            self.rename_category()
+        elif selected == toggle_action:
+            self.toggle_category()
+        elif selected == delete_action:
+            self.delete_category()
+
     def delete_category(self) -> None:
         category = self._selected_category()
         if category and QMessageBox.question(self, "Loeschen", f"Kategorie '{category.name}' loeschen?") == QMessageBox.Yes:
@@ -538,6 +662,11 @@ class MainWindow(QMainWindow):
             self.repo.reorder_category(category.id, direction)
             self.reload_categories(category.id)
             self.statusBar().showMessage("Kategorie sortiert", 2500)
+
+    def reorder_categories(self, category_ids: list[int]) -> None:
+        current_id = self.current_category_id
+        self._run_user_action(lambda: self.repo.set_category_order(category_ids), "Kategorie-Reihenfolge gespeichert")
+        self.reload_categories(current_id)
 
     def new_item(self) -> None:
         if not self.current_category_id:
@@ -557,12 +686,15 @@ class MainWindow(QMainWindow):
         if saved:
             self.reload_categories(self.current_category_id)
             self.reload_items(saved.id)
+            self.name_edit.setFocus()
+            self.name_edit.selectAll()
 
     def save_item(self) -> None:
         item = self.repo.get_item(self.current_item_id) if self.current_item_id else None
         if not item:
             QMessageBox.information(self, "Auswahl fehlt", "Bitte ein Gericht auswaehlen.")
             return
+        previous_category_id = item.category_id
         try:
             self._apply_editor_to_item(item)
             self.repo.save_item(item)
@@ -570,9 +702,11 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "Eingabe pruefen", str(exc))
             return
         self._dirty = False
+        self._autosave_timer.stop()
         self.current_category_id = item.category_id
         self.reload_categories(item.category_id)
-        self.reload_items(item.id)
+        if previous_category_id == item.category_id:
+            self.reload_items(item.id)
         self.statusBar().showMessage("Gericht gespeichert", 3000)
 
     def duplicate_item(self) -> None:
@@ -588,8 +722,31 @@ class MainWindow(QMainWindow):
             self._run_user_action(lambda: self.repo.save_item(item), "Gericht aktualisiert")
             self.reload_items(item.id)
 
+    def show_item_menu(self, position) -> None:
+        row = self.items_table.rowAt(position.y())
+        if row >= 0:
+            self.items_table.selectRow(row)
+        item = self.repo.get_item(self.current_item_id) if self.current_item_id else None
+        if not item:
+            return
+        menu = QMenu(self)
+        duplicate_action = menu.addAction("Duplizieren")
+        toggle_action = menu.addAction("Deaktivieren" if item.active else "Aktivieren")
+        menu.addSeparator()
+        delete_action = menu.addAction("Löschen")
+        delete_action.setIcon(self.style().standardIcon(QStyle.SP_MessageBoxCritical))
+        selected = menu.exec(self.items_table.viewport().mapToGlobal(position))
+        if selected == duplicate_action:
+            self.duplicate_item()
+        elif selected == toggle_action:
+            self.toggle_item()
+        elif selected == delete_action:
+            self.delete_item()
+
     def delete_selected(self) -> None:
-        if self.items_table.hasFocus() or self.current_item_id:
+        if self.category_table.hasFocus():
+            self.delete_category()
+        elif self.items_table.hasFocus() or self.current_item_id:
             self.delete_item()
 
     def delete_item(self) -> None:
@@ -606,6 +763,13 @@ class MainWindow(QMainWindow):
             self.repo.reorder_item(item_id, direction)
             self.reload_items(item_id)
             self.statusBar().showMessage("Gericht sortiert", 2500)
+
+    def reorder_items(self, item_ids: list[int]) -> None:
+        if not self.current_category_id:
+            return
+        current_id = self.current_item_id
+        self._run_user_action(lambda: self.repo.set_item_order(self.current_category_id, item_ids), "Gericht-Reihenfolge gespeichert")
+        self.reload_items(current_id)
 
     def edit_prices(self) -> None:
         dialog = PriceEditorDialog(self.repo, self)
@@ -681,10 +845,13 @@ class MainWindow(QMainWindow):
     def select_image(self) -> None:
         source, _ = QFileDialog.getOpenFileName(self, "Bild auswaehlen", str(PROJECT_ROOT), "Bilder (*.png *.jpg *.jpeg *.webp)")
         if source:
-            self.image_path_edit.setText(source)
+            self.set_image_path(source)
 
     def remove_image(self) -> None:
         self.image_path_edit.clear()
+
+    def set_image_path(self, path: str) -> None:
+        self.image_path_edit.setText(path)
 
     def _apply_editor_to_item(self, item: MenuItem) -> None:
         item.name = self.name_edit.text().strip()
@@ -697,7 +864,7 @@ class MainWindow(QMainWindow):
         item.active = self.active_check.isChecked()
         item.vegetarian = self.vegetarian_check.isChecked()
         item.vegan = self.vegan_check.isChecked()
-        item.spicy_level = self.spicy_slider.value()
+        item.spicy_level = self.spicy_spin.value()
         item.allergens = self.allergens_edit.text().strip() or None
         item.additives = self.additives_edit.text().strip() or None
         item.image_path = self.image_path_edit.text().strip() or None
@@ -706,18 +873,47 @@ class MainWindow(QMainWindow):
     def _autosave_if_dirty(self) -> bool:
         if self._loading or not self._dirty or not self.current_item_id:
             return True
+        self._autosave_timer.stop()
         item = self.repo.get_item(self.current_item_id)
         if not item:
             return True
         try:
+            previous_category_id = item.category_id
             self._apply_editor_to_item(item)
             self.repo.save_item(item)
             self._dirty = False
-            self.statusBar().showMessage("Aenderungen automatisch gespeichert", 3000)
+            if previous_category_id != item.category_id:
+                self.current_category_id = item.category_id
+                self.reload_categories(item.category_id)
+                self.reload_items(item.id)
+            else:
+                self._update_current_item_row(item)
+            self.statusBar().showMessage("Änderungen gespeichert", 2500)
             return True
         except (ValidationError, ValueError) as exc:
             QMessageBox.warning(self, "Eingabe pruefen", f"Die aktuellen Aenderungen koennen nicht gespeichert werden:\n{exc}")
             return False
+
+    def _perform_autosave(self) -> None:
+        if self._loading or not self._dirty or not self.current_item_id:
+            return
+        item = self.repo.get_item(self.current_item_id)
+        if not item:
+            return
+        try:
+            previous_category_id = item.category_id
+            self._apply_editor_to_item(item)
+            self.repo.save_item(item)
+            self._dirty = False
+            if previous_category_id != item.category_id:
+                self.current_category_id = item.category_id
+                self.reload_categories(item.category_id)
+                self.reload_items(item.id)
+            else:
+                self._update_current_item_row(item)
+            self.statusBar().showMessage("Änderungen gespeichert", 2500)
+        except (ValidationError, ValueError) as exc:
+            self.statusBar().showMessage(f"Autosave nicht möglich: {exc}", 5000)
 
     def _selected_category(self) -> Category | None:
         selected = self.category_table.selectedItems()
@@ -759,6 +955,27 @@ class MainWindow(QMainWindow):
     def _mark_dirty(self, *_args) -> None:
         if not self._loading and self.current_item_id:
             self._dirty = True
+            self.statusBar().showMessage("Ungespeicherte Änderungen")
+            self._autosave_timer.start()
+
+    def _update_current_item_row(self, item: MenuItem) -> None:
+        for row in range(self.items_table.rowCount()):
+            cell = self.items_table.item(row, 0)
+            if cell and cell.data(Qt.UserRole) == item.id:
+                values = [
+                    f"{item.sort_order}.  {item.name}",
+                    f"{float(item.price):.2f} EUR".replace(".", ","),
+                    "Ja" if item.active else "Nein",
+                    "Ja" if item.vegetarian else "",
+                    "Ja" if item.vegan else "",
+                    str(item.spicy_level) if item.spicy_level else "",
+                ]
+                for col, value in enumerate(values):
+                    table_item = self.items_table.item(row, col)
+                    if table_item:
+                        table_item.setText(value)
+                break
+        self._update_status()
 
     def _update_status(self) -> None:
         category_count = len(self.repo.list_items(self.current_category_id, active_only=False)) if self.current_category_id else 0
@@ -766,21 +983,7 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(f"{category_count} Gerichte in dieser Kategorie        Gesamt: {total_count} Gerichte")
 
     def _update_buttons(self) -> None:
-        has_category = self.current_category_id is not None
-        has_item = self.current_item_id is not None
-        for button in [
-            self.rename_category_button,
-            self.toggle_category_button,
-            self.delete_category_button,
-            self.move_category_up_button,
-            self.move_category_down_button,
-            self.add_item_button,
-        ]:
-            button.setEnabled(has_category)
-        for button in [self.duplicate_item_button, self.delete_item_button, self.move_item_up_button, self.move_item_down_button]:
-            button.setEnabled(has_item)
-        for key in ["new_item", "duplicate", "save"]:
-            self.actions[key].setEnabled(has_category if key == "new_item" else has_item)
+        self.actions["prices"].setEnabled(self.current_item_id is not None)
 
     def _run_user_action(self, action, success_message: str | None = None):
         try:

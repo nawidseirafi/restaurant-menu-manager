@@ -144,7 +144,7 @@ def global_stylesheet() -> str:
     QFrame[class="panel"] {{
         background: {c["surface"]};
         border: 1px solid #2b3035;
-        border-radius: 10px;
+        border-radius: 8px;
     }}
 
     QSplitter {{
@@ -184,11 +184,82 @@ def global_stylesheet() -> str:
         border-color: #2b2f34;
     }}
 
-    QComboBox::drop-down, QSpinBox::up-button, QSpinBox::down-button,
-    QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {{
+    QComboBox::drop-down {{
         background: {c["surface_alt"]};
         border-left: 1px solid {c["border"]};
+        border-top-right-radius: 7px;
+        border-bottom-right-radius: 7px;
+        width: 30px;
+    }}
+
+    QComboBox::drop-down:hover {{
+        background: {c["field_hover"]};
+    }}
+
+    QComboBox::down-arrow {{
+        image: none;
+        width: 0;
+        height: 0;
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-top: 6px solid {c["text"]};
+        margin-right: 9px;
+    }}
+
+    QComboBox::down-arrow:disabled {{
+        border-top-color: {c["disabled"]};
+    }}
+
+    QSpinBox, QDoubleSpinBox {{
+        padding-right: 28px;
+    }}
+
+    QSpinBox::up-button, QDoubleSpinBox::up-button {{
+        subcontrol-origin: border;
+        subcontrol-position: top right;
+        background: {c["surface_alt"]};
+        border-left: 1px solid {c["border"]};
+        border-bottom: 1px solid {c["border"]};
+        border-top-right-radius: 7px;
         width: 24px;
+    }}
+
+    QSpinBox::down-button, QDoubleSpinBox::down-button {{
+        subcontrol-origin: border;
+        subcontrol-position: bottom right;
+        background: {c["surface_alt"]};
+        border-left: 1px solid {c["border"]};
+        border-bottom-right-radius: 7px;
+        width: 24px;
+    }}
+
+    QSpinBox::up-button:hover, QSpinBox::down-button:hover,
+    QDoubleSpinBox::up-button:hover, QDoubleSpinBox::down-button:hover {{
+        background: {c["field_hover"]};
+    }}
+
+    QSpinBox::up-arrow, QDoubleSpinBox::up-arrow {{
+        image: none;
+        width: 0;
+        height: 0;
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+        border-bottom: 5px solid {c["text"]};
+    }}
+
+    QSpinBox::down-arrow, QDoubleSpinBox::down-arrow {{
+        image: none;
+        width: 0;
+        height: 0;
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+        border-top: 5px solid {c["text"]};
+    }}
+
+    QSpinBox::up-arrow:disabled, QSpinBox::down-arrow:disabled,
+    QDoubleSpinBox::up-arrow:disabled, QDoubleSpinBox::down-arrow:disabled {{
+        border-top-color: {c["disabled"]};
+        border-bottom-color: {c["disabled"]};
     }}
 
     QComboBox QAbstractItemView {{
@@ -330,6 +401,47 @@ def global_stylesheet() -> str:
 
     QPushButton[role="danger"]:hover {{
         background: {c["red_hover"]};
+    }}
+
+    QToolButton[class="addButton"], QToolButton[class="iconButton"] {{
+        min-width: 28px;
+        min-height: 28px;
+        padding: 0;
+        border-radius: 6px;
+        font-weight: 700;
+    }}
+
+    QToolButton[class="addButton"] {{
+        color: #18110a;
+        background: {c["orange"]};
+        border-color: {c["orange"]};
+    }}
+
+    QToolButton[class="addButton"]:hover {{
+        background: {c["orange_hover"]};
+    }}
+
+    QToolButton[class="iconButton"] {{
+        color: #fff5f3;
+        background: #2a2221;
+        border-color: #57312d;
+    }}
+
+    QToolButton[class="iconButton"]:hover {{
+        background: {c["red"]};
+        border-color: {c["red"]};
+    }}
+
+    QLabel[class="imagePreview"] {{
+        border: 1px solid {c["border"]};
+        border-radius: 6px;
+        color: {c["muted"]};
+        background: {c["field"]};
+    }}
+
+    QLabel[class="imagePreview"]:hover {{
+        border-color: {c["orange"]};
+        background: {c["field_hover"]};
     }}
 
     QDialogButtonBox QPushButton {{

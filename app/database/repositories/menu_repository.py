@@ -105,6 +105,22 @@ class MenuRepository:
         items = self.list_items(item.category_id)
         self._move_ordered(items, item_id, direction)
 
+    def set_category_order(self, category_ids: list[int]) -> None:
+        categories = {category.id: category for category in self.list_categories()}
+        for sort_order, category_id in enumerate(category_ids, start=1):
+            category = categories.get(category_id)
+            if category:
+                category.sort_order = sort_order
+        self.session.commit()
+
+    def set_item_order(self, category_id: int, item_ids: list[int]) -> None:
+        items = {item.id: item for item in self.list_items(category_id)}
+        for sort_order, item_id in enumerate(item_ids, start=1):
+            item = items.get(item_id)
+            if item:
+                item.sort_order = sort_order
+        self.session.commit()
+
     def get_settings(self) -> Settings:
         settings = self.session.get(Settings, 1)
         if not settings:

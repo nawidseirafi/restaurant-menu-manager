@@ -17,3 +17,4 @@
 2026-09-01 13:41:38,716 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/menu.pdf
 2026-09-01 13:41:39,028 INFO app.gui.main_window: Action completed: /Users/nawid/Projects/restaurant-menu-manager/exports/preview/index.html
 2026-09-01 13:42:32,917 INFO app.gui.main_window: Action completed: /Users/nawid/Projects/restaurant-menu-manager/exports/preview/index.html
+2026-09-01 13:57:06,117 INFO app.gui.main_window: Action completed: MenuItem(id=164, name='Neues Gericht')
