@@ -1,0 +1,804 @@
+from __future__ import annotations
+
+import asyncio
+import logging
+from pathlib import Path
+
+from PySide6.QtCore import QLocale, QSize, Qt
+from PySide6.QtGui import QAction, QKeySequence, QPixmap, QShortcut
+from PySide6.QtWidgets import (
+    QAbstractItemView,
+    QApplication,
+    QCheckBox,
+    QComboBox,
+    QDoubleSpinBox,
+    QFileDialog,
+    QFormLayout,
+    QFrame,
+    QGridLayout,
+    QHeaderView,
+    QHBoxLayout,
+    QInputDialog,
+    QLabel,
+    QLineEdit,
+    QMainWindow,
+    QMenu,
+    QMessageBox,
+    QPushButton,
+    QScrollArea,
+    QSizePolicy,
+    QSlider,
+    QSplitter,
+    QStyle,
+    QTableWidget,
+    QTableWidgetItem,
+    QTextEdit,
+    QToolButton,
+    QToolBar,
+    QVBoxLayout,
+    QWidget,
+)
+
+from app.database.db import DEFAULT_DB_PATH
+from app.database.repositories import MenuRepository
+from app.database.repositories.menu_repository import ValidationError
+from app.gui.dialogs.price_editor import PriceEditorDialog
+from app.gui.theme import apply_theme, mark_button
+from app.models import Category, CategoryType, MenuItem
+from app.services.backup_service import BackupService
+from app.services.html_exporter import HtmlExporter
+from app.services.json_service import JsonService
+from app.services.pdf_exporter import PdfExporter
+from app.services.qr_exporter import QrExporter
+
+LOGGER = logging.getLogger(__name__)
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+
+
+class MainWindow(QMainWindow):
+    def __init__(self, session_factory):
+        super().__init__()
+        self.session_factory = session_factory
+        self.session = session_factory()
+        self.repo = MenuRepository(self.session)
+        self.current_category_id: int | None = None
+        self.current_item_id: int | None = None
+        self._loading = False
+        self._dirty = False
+
+        self.setWindowTitle("TacoMex Menu Manager")
+        self.setMinimumSize(1120, 720)
+        self.resize(1500, 900)
+        self._build_ui()
+        self._install_shortcuts()
+        self.reload_categories()
+        self.statusBar().showMessage("Bereit")
+
+    def closeEvent(self, event) -> None:
+        if not self._autosave_if_dirty():
+            event.ignore()
+            return
+        self.session.close()
+        super().closeEvent(event)
+
+    def _build_ui(self) -> None:
+        self._build_toolbar()
+
+        splitter = QSplitter(Qt.Horizontal)
+        splitter.setChildrenCollapsible(False)
+        splitter.addWidget(self._category_panel())
+        splitter.addWidget(self._items_panel())
+        splitter.addWidget(self._editor_panel())
+        splitter.setSizes([330, 600, 570])
+        self.setCentralWidget(splitter)
+
+    def _build_toolbar(self) -> None:
+        toolbar = QToolBar("Aktionen")
+        toolbar.setMovable(False)
+        toolbar.setIconSize(QSize(18, 18))
+        self.addToolBar(toolbar)
+
+        self.actions: dict[str, QPushButton | QAction] = {}
+        title = QLabel("TacoMex Menu Manager")
+        title.setProperty("class", "appTitle")
+        toolbar.addWidget(title)
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        toolbar.addWidget(spacer)
+
+        self._add_toolbar_button(toolbar, "new_item", "Neues Gericht", QStyle.SP_FileIcon, self.new_item, "primary")
+        self._add_toolbar_button(toolbar, "save", "Speichern", QStyle.SP_DialogSaveButton, self.save_item, "primary")
+        self._add_toolbar_button(toolbar, "preview", "Vorschau", QStyle.SP_FileDialogContentsView, self.preview_html, "accent")
+        self._add_toolbar_button(toolbar, "pdf", "PDF", QStyle.SP_FileDialogInfoView, self.export_pdf, "accent")
+        toolbar.addSeparator()
+
+        self._add_toolbar_menu(toolbar, "Bearbeiten", [
+            ("Neue Kategorie", "new_category", self.new_category),
+            ("Duplizieren", "duplicate", self.duplicate_item),
+            ("Preise bearbeiten", "prices", self.edit_prices),
+        ])
+        self._add_toolbar_menu(toolbar, "Export", [
+            ("HTML exportieren", "html", self.export_html),
+            ("QR-Code", "qr", self.export_qr),
+        ])
+        self._add_toolbar_menu(toolbar, "Daten", [
+            ("Backup", "backup", self.create_backup),
+            ("Wiederherstellen", "restore", self.restore_backup),
+            ("JSON Export", "json_export", self.export_json),
+            ("JSON Import", "json_import", self.import_json),
+        ])
+        self._add_toolbar_button(toolbar, "settings", "Einstellungen", QStyle.SP_FileDialogDetailedView, self.open_settings)
+
+    def _add_toolbar_button(self, toolbar: QToolBar, key: str, text: str, icon: QStyle.StandardPixmap, handler, role: str = "secondary") -> None:
+        button = QPushButton(self.style().standardIcon(icon), text)
+        button.clicked.connect(handler)
+        button.setToolTip(text)
+        mark_button(button, role)
+        toolbar.addWidget(button)
+        self.actions[key] = button
+
+    def _add_toolbar_menu(self, toolbar: QToolBar, text: str, items: list[tuple[str, str, object]]) -> None:
+        menu = QMenu(self)
+        for label, key, handler in items:
+            action = QAction(label, self)
+            action.triggered.connect(handler)
+            menu.addAction(action)
+            self.actions[key] = action
+        button = QToolButton()
+        button.setText(text)
+        button.setPopupMode(QToolButton.InstantPopup)
+        button.setMenu(menu)
+        button.setToolTip(text)
+        toolbar.addWidget(button)
+
+    def _category_panel(self) -> QFrame:
+        panel = self._panel_frame()
+        layout = QVBoxLayout(panel)
+        self.category_title = self._panel_title("KATEGORIEN")
+        self.category_table = QTableWidget(0, 2)
+        self.category_table.setHorizontalHeaderLabels(["Kategorie", ""])
+        self.category_table.horizontalHeader().setVisible(False)
+        self.category_table.verticalHeader().setVisible(False)
+        self.category_table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.category_table.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.category_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.category_table.setShowGrid(False)
+        self.category_table.horizontalHeader().setStretchLastSection(False)
+        self.category_table.setColumnWidth(1, 44)
+        self.category_table.itemSelectionChanged.connect(self.on_category_selected)
+        layout.addWidget(self.category_title)
+        layout.addWidget(self.category_table, 1)
+        layout.addLayout(self._button_row([
+            ("Neue Kategorie", "new_category_button", self.new_category, "secondary"),
+            ("Umbenennen", "rename_category_button", self.rename_category, "secondary"),
+        ]))
+        layout.addLayout(self._button_row([
+            ("Hoch", "move_category_up_button", lambda: self.move_category(-1), "secondary"),
+            ("Runter", "move_category_down_button", lambda: self.move_category(1), "secondary"),
+            ("Loeschen", "delete_category_button", self.delete_category, "danger"),
+        ]))
+        self.toggle_category_button = QPushButton("Aktiv/Inaktiv")
+        self.toggle_category_button.clicked.connect(self.toggle_category)
+        self.toggle_category_button.hide()
+        return panel
+
+    def _items_panel(self) -> QFrame:
+        panel = self._panel_frame()
+        layout = QVBoxLayout(panel)
+        self.items_title = self._panel_title("GERICHTE")
+        self.items_table = QTableWidget(0, 6)
+        self.items_table.setHorizontalHeaderLabels(["Name", "Preis", "Aktiv", "Veg.", "Vegan", "Scharf"])
+        self.items_table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.items_table.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.items_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.items_table.setAlternatingRowColors(True)
+        self.items_table.verticalHeader().setVisible(False)
+        self.items_table.horizontalHeader().setStretchLastSection(False)
+        self.items_table.horizontalHeader().setDefaultAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.items_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        for column in range(1, 6):
+            self.items_table.horizontalHeader().setSectionResizeMode(column, QHeaderView.ResizeToContents)
+        self.items_table.itemSelectionChanged.connect(self.on_item_selection_changed)
+        self.items_table.doubleClicked.connect(lambda *_: self.name_edit.setFocus())
+        layout.addWidget(self.items_title)
+        layout.addWidget(self.items_table, 1)
+        layout.addLayout(self._button_row([
+            ("Hinzufuegen", "add_item_button", self.new_item, "primary"),
+            ("Duplizieren", "duplicate_item_button", self.duplicate_item, "secondary"),
+            ("Loeschen", "delete_item_button", self.delete_item, "danger"),
+            ("Hoch", "move_item_up_button", lambda: self.move_item(-1), "secondary"),
+            ("Runter", "move_item_down_button", lambda: self.move_item(1), "secondary"),
+        ]))
+        return panel
+
+    def _editor_panel(self) -> QScrollArea:
+        frame = self._panel_frame()
+        layout = QVBoxLayout(frame)
+        layout.addWidget(self._panel_title("GERICHT BEARBEITEN"))
+
+        form = QFormLayout()
+        form.setLabelAlignment(Qt.AlignLeft)
+        form.setFormAlignment(Qt.AlignTop)
+        form.setHorizontalSpacing(18)
+        form.setVerticalSpacing(10)
+        form.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
+
+        self.name_edit = QLineEdit()
+        self.description_edit = QTextEdit()
+        self.description_edit.setFixedHeight(82)
+        self.price_spin = self._money_spin()
+        self.second_price_spin = self._money_spin()
+        self.second_price_spin.setSpecialValueText("kein zweiter Preis")
+        self.second_price_label_edit = QLineEdit()
+        self.category_combo = QComboBox()
+        self.active_check = QCheckBox("Aktiv")
+        self.vegetarian_check = QCheckBox("Vegetarisch")
+        self.vegan_check = QCheckBox("Vegan")
+        self.spicy_slider = QSlider(Qt.Horizontal)
+        self.spicy_slider.setRange(0, 5)
+        self.spicy_value_label = QLabel("0")
+        spicy_row = QHBoxLayout()
+        spicy_row.addWidget(self.spicy_slider, 1)
+        spicy_row.addWidget(self.spicy_value_label)
+        self.allergens_edit = QLineEdit()
+        self.additives_edit = QLineEdit()
+        self.image_path_edit = QLineEdit()
+        self.image_preview = QLabel("Kein Bild")
+        self.image_preview.setFixedSize(150, 92)
+        self.image_preview.setAlignment(Qt.AlignCenter)
+        self.image_preview.setStyleSheet("border: 1px solid #34383d; border-radius: 5px; color: #b8b8b8;")
+        image_buttons = QHBoxLayout()
+        self.select_image_button = QPushButton("Bild waehlen")
+        self.remove_image_button = QPushButton("Entfernen")
+        mark_button(self.select_image_button, "secondary")
+        mark_button(self.remove_image_button, "danger")
+        self.select_image_button.clicked.connect(self.select_image)
+        self.remove_image_button.clicked.connect(self.remove_image)
+        image_buttons.addWidget(self.select_image_button)
+        image_buttons.addWidget(self.remove_image_button)
+        image_box = QVBoxLayout()
+        image_box.addWidget(self.image_path_edit)
+        image_box.addWidget(self.image_preview)
+        image_box.addLayout(image_buttons)
+        self.notes_edit = QTextEdit()
+        self.notes_edit.setFixedHeight(74)
+
+        form.addRow(self._required_label("Name *"), self.name_edit)
+        form.addRow("Beschreibung", self.description_edit)
+        form.addRow(self._required_label("Preis *"), self.price_spin)
+        form.addRow("Zweiter Preis", self.second_price_spin)
+        form.addRow("Label zweiter Preis", self.second_price_label_edit)
+        form.addRow(self._required_label("Kategorie *"), self.category_combo)
+        form.addRow("Status", self._check_row())
+        form.addRow("Schaerfe 0-5", spicy_row)
+        form.addRow("Allergene", self.allergens_edit)
+        form.addRow("Zusatzstoffe", self.additives_edit)
+        form.addRow("Bild", image_box)
+        form.addRow("Notizen", self.notes_edit)
+        layout.addLayout(form)
+        layout.addStretch(1)
+
+        for widget in [
+            self.name_edit,
+            self.description_edit,
+            self.price_spin,
+            self.second_price_spin,
+            self.second_price_label_edit,
+            self.category_combo,
+            self.active_check,
+            self.vegetarian_check,
+            self.vegan_check,
+            self.spicy_slider,
+            self.allergens_edit,
+            self.additives_edit,
+            self.image_path_edit,
+            self.notes_edit,
+        ]:
+            self._connect_dirty(widget)
+        self.spicy_slider.valueChanged.connect(lambda value: self.spicy_value_label.setText(str(value)))
+        self.image_path_edit.textChanged.connect(lambda *_: self._update_image_preview())
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(frame)
+        return scroll
+
+    def _panel_frame(self) -> QFrame:
+        frame = QFrame()
+        frame.setProperty("class", "panel")
+        frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        return frame
+
+    def _panel_title(self, text: str) -> QLabel:
+        label = QLabel(text)
+        label.setProperty("class", "panelTitle")
+        return label
+
+    def _required_label(self, text: str) -> QLabel:
+        label = QLabel(text)
+        label.setProperty("class", "required")
+        return label
+
+    def _button_row(self, definitions: list[tuple[str, str, object, str]]) -> QHBoxLayout:
+        row = QHBoxLayout()
+        row.setSpacing(8)
+        for text, attr, handler, role in definitions:
+            button = QPushButton(text)
+            button.clicked.connect(handler)
+            mark_button(button, role)
+            setattr(self, attr, button)
+            row.addWidget(button)
+        return row
+
+    def _check_row(self) -> QWidget:
+        widget = QWidget()
+        layout = QHBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.active_check)
+        layout.addWidget(self.vegetarian_check)
+        layout.addWidget(self.vegan_check)
+        layout.addStretch(1)
+        return widget
+
+    def _money_spin(self) -> QDoubleSpinBox:
+        spin = QDoubleSpinBox()
+        spin.setRange(0, 9999)
+        spin.setDecimals(2)
+        spin.setSingleStep(0.50)
+        spin.setSuffix(" EUR")
+        spin.setLocale(QLocale(QLocale.German, QLocale.Germany))
+        return spin
+
+    def _connect_dirty(self, widget: QWidget) -> None:
+        if isinstance(widget, QLineEdit):
+            widget.textChanged.connect(self._mark_dirty)
+        elif isinstance(widget, QTextEdit):
+            widget.textChanged.connect(self._mark_dirty)
+        elif isinstance(widget, QDoubleSpinBox):
+            widget.valueChanged.connect(self._mark_dirty)
+        elif isinstance(widget, QComboBox):
+            widget.currentIndexChanged.connect(self._mark_dirty)
+        elif isinstance(widget, QCheckBox):
+            widget.toggled.connect(self._mark_dirty)
+        elif isinstance(widget, QSlider):
+            widget.valueChanged.connect(self._mark_dirty)
+
+    def _install_shortcuts(self) -> None:
+        QShortcut(QKeySequence.Save, self, activated=self.save_item)
+        QShortcut(QKeySequence.Delete, self, activated=self.delete_selected)
+
+    def reload_categories(self, select_category_id: int | None = None) -> None:
+        self._loading = True
+        previous = select_category_id or self.current_category_id
+        self.category_table.setRowCount(0)
+        self.category_combo.clear()
+        categories = self.repo.list_categories(active_only=False)
+        counts = {category.id: len(category.items) for category in categories}
+        self.category_table.setRowCount(len(categories))
+        for row, category in enumerate(categories):
+            name = category.name if category.active else f"{category.name}  inaktiv"
+            name_item = QTableWidgetItem(name)
+            name_item.setData(Qt.UserRole, category.id)
+            count_item = QTableWidgetItem(str(counts[category.id]))
+            count_item.setData(Qt.UserRole, category.id)
+            count_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            self.category_table.setItem(row, 0, name_item)
+            self.category_table.setItem(row, 1, count_item)
+            self.category_table.setRowHeight(row, 40)
+            self.category_combo.addItem(category.name, category.id)
+        self.category_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        self._loading = False
+        if categories:
+            target = previous if previous else categories[0].id
+            self._select_category_by_id(target)
+        self._update_buttons()
+
+    def reload_items(self, select_item_id: int | None = None) -> None:
+        self._loading = True
+        self.items_table.setRowCount(0)
+        category = self.repo.get_category(self.current_category_id) if self.current_category_id else None
+        self.items_title.setText(f"GERICHTE - {category.name.upper()}" if category else "GERICHTE")
+        if not self.current_category_id:
+            self._loading = False
+            self._update_buttons()
+            return
+
+        items = self.repo.list_items(self.current_category_id, active_only=False)
+        self.items_table.setRowCount(len(items))
+        for row, item in enumerate(items):
+            values = [
+                f"{item.sort_order}.  {item.name}",
+                f"{item.price:.2f} EUR".replace(".", ","),
+                "Ja" if item.active else "Nein",
+                "Ja" if item.vegetarian else "",
+                "Ja" if item.vegan else "",
+                str(item.spicy_level) if item.spicy_level else "",
+            ]
+            for col, value in enumerate(values):
+                cell = QTableWidgetItem(value)
+                cell.setData(Qt.UserRole, item.id)
+                if col in {1, 2, 3, 4, 5}:
+                    cell.setTextAlignment(Qt.AlignCenter)
+                self.items_table.setItem(row, col, cell)
+            self.items_table.setRowHeight(row, 42)
+        self._loading = False
+
+        if items:
+            self._select_item_by_id(select_item_id or self.current_item_id or items[0].id)
+        else:
+            self.current_item_id = None
+            self._clear_editor()
+        self._update_status()
+        self._update_buttons()
+
+    def on_category_selected(self) -> None:
+        if self._loading:
+            return
+        selected = self.category_table.selectedItems()
+        if not selected:
+            return
+        if not self._autosave_if_dirty():
+            return
+        self.current_category_id = selected[0].data(Qt.UserRole)
+        self.current_item_id = None
+        self.reload_items()
+
+    def on_item_selection_changed(self) -> None:
+        if self._loading:
+            return
+        selected = self.items_table.selectedItems()
+        if not selected:
+            self.current_item_id = None
+            self._update_buttons()
+            return
+        new_id = selected[0].data(Qt.UserRole)
+        if new_id == self.current_item_id:
+            return
+        if not self._autosave_if_dirty():
+            self._select_item_by_id(self.current_item_id)
+            return
+        self.current_item_id = new_id
+        item = self.repo.get_item(self.current_item_id)
+        if item:
+            self._load_item(item)
+        self._update_buttons()
+
+    def _load_item(self, item: MenuItem) -> None:
+        self._loading = True
+        self.name_edit.setText(item.name)
+        self.description_edit.setPlainText(item.description or "")
+        self.price_spin.setValue(float(item.price))
+        self.second_price_spin.setValue(float(item.second_price or 0))
+        self.second_price_label_edit.setText(item.second_price_label or "")
+        self.category_combo.setCurrentIndex(max(0, self.category_combo.findData(item.category_id)))
+        self.active_check.setChecked(item.active)
+        self.vegetarian_check.setChecked(item.vegetarian)
+        self.vegan_check.setChecked(item.vegan)
+        self.spicy_slider.setValue(item.spicy_level)
+        self.allergens_edit.setText(item.allergens or "")
+        self.additives_edit.setText(item.additives or "")
+        self.image_path_edit.setText(item.image_path or "")
+        self.notes_edit.setPlainText(item.notes or "")
+        self._update_image_preview()
+        self._loading = False
+        self._dirty = False
+
+    def _clear_editor(self) -> None:
+        self._loading = True
+        for widget in [self.name_edit, self.second_price_label_edit, self.allergens_edit, self.additives_edit, self.image_path_edit]:
+            widget.clear()
+        self.description_edit.clear()
+        self.notes_edit.clear()
+        self.price_spin.setValue(0)
+        self.second_price_spin.setValue(0)
+        self.active_check.setChecked(False)
+        self.vegetarian_check.setChecked(False)
+        self.vegan_check.setChecked(False)
+        self.spicy_slider.setValue(0)
+        self._update_image_preview()
+        self._loading = False
+        self._dirty = False
+
+    def new_category(self) -> None:
+        name, ok = QInputDialog.getText(self, "Neue Kategorie", "Name")
+        if ok and name.strip():
+            category = Category(name=name.strip(), sort_order=len(self.repo.list_categories()) + 1, type=CategoryType.food)
+            saved = self._run_user_action(lambda: self.repo.save_category(category), "Kategorie erstellt")
+            if saved:
+                self.reload_categories(saved.id)
+
+    def rename_category(self) -> None:
+        category = self._selected_category()
+        if not category:
+            return
+        name, ok = QInputDialog.getText(self, "Kategorie bearbeiten", "Name", text=category.name)
+        if ok and name.strip():
+            category.name = name.strip()
+            self._run_user_action(lambda: self.repo.save_category(category), "Kategorie gespeichert")
+            self.reload_categories(category.id)
+
+    def toggle_category(self) -> None:
+        category = self._selected_category()
+        if category:
+            category.active = not category.active
+            self._run_user_action(lambda: self.repo.save_category(category), "Kategorie aktualisiert")
+            self.reload_categories(category.id)
+
+    def delete_category(self) -> None:
+        category = self._selected_category()
+        if category and QMessageBox.question(self, "Loeschen", f"Kategorie '{category.name}' loeschen?") == QMessageBox.Yes:
+            self.repo.delete_category(category.id)
+            self.current_category_id = None
+            self.reload_categories()
+            self.statusBar().showMessage("Kategorie geloescht", 3000)
+
+    def move_category(self, direction: int) -> None:
+        category = self._selected_category()
+        if category:
+            self.repo.reorder_category(category.id, direction)
+            self.reload_categories(category.id)
+            self.statusBar().showMessage("Kategorie sortiert", 2500)
+
+    def new_item(self) -> None:
+        if not self.current_category_id:
+            QMessageBox.information(self, "Kategorie fehlt", "Bitte zuerst eine Kategorie auswaehlen.")
+            return
+        if not self._autosave_if_dirty():
+            return
+        item = MenuItem(
+            category_id=self.current_category_id,
+            name="Neues Gericht",
+            description="",
+            price=0,
+            sort_order=len(self.repo.list_items(self.current_category_id)) + 1,
+            active=True,
+        )
+        saved = self._run_user_action(lambda: self.repo.save_item(item), "Gericht erstellt")
+        if saved:
+            self.reload_categories(self.current_category_id)
+            self.reload_items(saved.id)
+
+    def save_item(self) -> None:
+        item = self.repo.get_item(self.current_item_id) if self.current_item_id else None
+        if not item:
+            QMessageBox.information(self, "Auswahl fehlt", "Bitte ein Gericht auswaehlen.")
+            return
+        try:
+            self._apply_editor_to_item(item)
+            self.repo.save_item(item)
+        except (ValidationError, ValueError) as exc:
+            QMessageBox.warning(self, "Eingabe pruefen", str(exc))
+            return
+        self._dirty = False
+        self.current_category_id = item.category_id
+        self.reload_categories(item.category_id)
+        self.reload_items(item.id)
+        self.statusBar().showMessage("Gericht gespeichert", 3000)
+
+    def duplicate_item(self) -> None:
+        if self.current_item_id:
+            saved = self._run_user_action(lambda: self.repo.duplicate_item(self.current_item_id), "Gericht dupliziert")
+            if saved:
+                self.reload_items(saved.id)
+
+    def toggle_item(self) -> None:
+        item = self.repo.get_item(self.current_item_id) if self.current_item_id else None
+        if item:
+            item.active = not item.active
+            self._run_user_action(lambda: self.repo.save_item(item), "Gericht aktualisiert")
+            self.reload_items(item.id)
+
+    def delete_selected(self) -> None:
+        if self.items_table.hasFocus() or self.current_item_id:
+            self.delete_item()
+
+    def delete_item(self) -> None:
+        item = self.repo.get_item(self.current_item_id) if self.current_item_id else None
+        if item and QMessageBox.question(self, "Loeschen", f"Gericht '{item.name}' loeschen?") == QMessageBox.Yes:
+            self.repo.delete_item(item.id)
+            self.current_item_id = None
+            self.reload_items()
+            self.statusBar().showMessage("Gericht geloescht", 3000)
+
+    def move_item(self, direction: int) -> None:
+        if self.current_item_id:
+            item_id = self.current_item_id
+            self.repo.reorder_item(item_id, direction)
+            self.reload_items(item_id)
+            self.statusBar().showMessage("Gericht sortiert", 2500)
+
+    def edit_prices(self) -> None:
+        dialog = PriceEditorDialog(self.repo, self)
+        if dialog.exec():
+            self.reload_items(self.current_item_id)
+            if self.current_item_id:
+                item = self.repo.get_item(self.current_item_id)
+                if item:
+                    self._load_item(item)
+            self.statusBar().showMessage("Preise aktualisiert", 3000)
+
+    def preview_html(self) -> None:
+        target = PROJECT_ROOT / "exports" / "preview"
+        result = self._run_user_action(lambda: HtmlExporter().export(self.session, target), "Vorschau erstellt")
+        if result:
+            QMessageBox.information(self, "Vorschau erstellt", f"HTML-Vorschau wurde erstellt:\n{result}")
+
+    def export_html(self) -> None:
+        target = QFileDialog.getExistingDirectory(self, "HTML-Export Ordner", str(PROJECT_ROOT / "exports" / "html"))
+        if target:
+            self._run_user_action(lambda: HtmlExporter().export(self.session, Path(target)), "HTML exportiert")
+
+    def export_pdf(self) -> None:
+        target, _ = QFileDialog.getSaveFileName(self, "PDF exportieren", str(PROJECT_ROOT / "exports" / "menu.pdf"), "PDF (*.pdf)")
+        if target:
+            self._run_user_action(lambda: asyncio.run(PdfExporter().export(self.session, Path(target))), "PDF exportiert")
+
+    def export_qr(self) -> None:
+        settings = self.repo.get_settings()
+        target, _ = QFileDialog.getSaveFileName(self, "QR-Code exportieren", str(PROJECT_ROOT / "exports" / "qr-code.png"), "PNG (*.png);;SVG (*.svg)")
+        if target:
+            exporter = QrExporter()
+            path = Path(target)
+            self._run_user_action(
+                lambda: exporter.export_svg(settings.menu_url, path) if path.suffix.lower() == ".svg" else exporter.export_png(settings.menu_url, path),
+                "QR-Code exportiert",
+            )
+
+    def create_backup(self) -> None:
+        self._run_user_action(lambda: BackupService().create_backup(DEFAULT_DB_PATH, PROJECT_ROOT / "exports" / "backups"), "Backup erstellt")
+
+    def restore_backup(self) -> None:
+        source, _ = QFileDialog.getOpenFileName(self, "Backup wiederherstellen", str(PROJECT_ROOT / "exports" / "backups"), "SQLite DB (*.db)")
+        if not source:
+            return
+        if QMessageBox.question(self, "Backup wiederherstellen", "Aktuelle Datenbank durch dieses Backup ersetzen?") != QMessageBox.Yes:
+            return
+        try:
+            self.session.close()
+            BackupService().restore_backup(Path(source), DEFAULT_DB_PATH)
+            self.session = self.session_factory()
+            self.repo = MenuRepository(self.session)
+            self.reload_categories()
+            self.statusBar().showMessage("Backup wiederhergestellt", 4000)
+        except Exception as exc:
+            LOGGER.exception("Backup restore failed")
+            QMessageBox.critical(self, "Fehler", str(exc))
+
+    def export_json(self) -> None:
+        target, _ = QFileDialog.getSaveFileName(self, "JSON exportieren", str(PROJECT_ROOT / "exports" / "menu.json"), "JSON (*.json)")
+        if target:
+            self._run_user_action(lambda: JsonService().export_menu(self.session, Path(target)), "JSON exportiert")
+
+    def import_json(self) -> None:
+        source, _ = QFileDialog.getOpenFileName(self, "JSON importieren", str(PROJECT_ROOT / "exports"), "JSON (*.json)")
+        if source and QMessageBox.question(self, "Import", "Aktuelle Menudaten ersetzen?") == QMessageBox.Yes:
+            self._run_user_action(lambda: JsonService().import_menu(self.session, Path(source)), "JSON importiert")
+            self.reload_categories()
+
+    def open_settings(self) -> None:
+        QMessageBox.information(self, "Einstellungen", "Der Einstellungsdialog ist fuer die naechste UI-Iteration vorgesehen.")
+
+    def select_image(self) -> None:
+        source, _ = QFileDialog.getOpenFileName(self, "Bild auswaehlen", str(PROJECT_ROOT), "Bilder (*.png *.jpg *.jpeg *.webp)")
+        if source:
+            self.image_path_edit.setText(source)
+
+    def remove_image(self) -> None:
+        self.image_path_edit.clear()
+
+    def _apply_editor_to_item(self, item: MenuItem) -> None:
+        item.name = self.name_edit.text().strip()
+        item.description = self.description_edit.toPlainText().strip()
+        item.price = self.price_spin.value()
+        second_price = self.second_price_spin.value()
+        item.second_price = second_price if second_price > 0 else None
+        item.second_price_label = self.second_price_label_edit.text().strip() or None
+        item.category_id = self.category_combo.currentData()
+        item.active = self.active_check.isChecked()
+        item.vegetarian = self.vegetarian_check.isChecked()
+        item.vegan = self.vegan_check.isChecked()
+        item.spicy_level = self.spicy_slider.value()
+        item.allergens = self.allergens_edit.text().strip() or None
+        item.additives = self.additives_edit.text().strip() or None
+        item.image_path = self.image_path_edit.text().strip() or None
+        item.notes = self.notes_edit.toPlainText().strip() or None
+
+    def _autosave_if_dirty(self) -> bool:
+        if self._loading or not self._dirty or not self.current_item_id:
+            return True
+        item = self.repo.get_item(self.current_item_id)
+        if not item:
+            return True
+        try:
+            self._apply_editor_to_item(item)
+            self.repo.save_item(item)
+            self._dirty = False
+            self.statusBar().showMessage("Aenderungen automatisch gespeichert", 3000)
+            return True
+        except (ValidationError, ValueError) as exc:
+            QMessageBox.warning(self, "Eingabe pruefen", f"Die aktuellen Aenderungen koennen nicht gespeichert werden:\n{exc}")
+            return False
+
+    def _selected_category(self) -> Category | None:
+        selected = self.category_table.selectedItems()
+        return self.repo.get_category(selected[0].data(Qt.UserRole)) if selected else None
+
+    def _select_category_by_id(self, category_id: int | None) -> None:
+        if not category_id:
+            return
+        for row in range(self.category_table.rowCount()):
+            item = self.category_table.item(row, 0)
+            if item.data(Qt.UserRole) == category_id:
+                self.category_table.selectRow(row)
+                self.current_category_id = category_id
+                return
+
+    def _select_item_by_id(self, item_id: int | None) -> None:
+        if not item_id:
+            return
+        for row in range(self.items_table.rowCount()):
+            cell = self.items_table.item(row, 0)
+            if cell and cell.data(Qt.UserRole) == item_id:
+                self.items_table.selectRow(row)
+                self.current_item_id = item_id
+                item = self.repo.get_item(item_id)
+                if item:
+                    self._load_item(item)
+                return
+
+    def _update_image_preview(self) -> None:
+        path = Path(self.image_path_edit.text().strip())
+        if path.exists() and path.is_file():
+            pixmap = QPixmap(str(path)).scaled(150, 92, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            self.image_preview.setPixmap(pixmap)
+            self.image_preview.setText("")
+        else:
+            self.image_preview.setPixmap(QPixmap())
+            self.image_preview.setText("Kein Bild")
+
+    def _mark_dirty(self, *_args) -> None:
+        if not self._loading and self.current_item_id:
+            self._dirty = True
+
+    def _update_status(self) -> None:
+        category_count = len(self.repo.list_items(self.current_category_id, active_only=False)) if self.current_category_id else 0
+        total_count = len(self.repo.list_items(active_only=False))
+        self.statusBar().showMessage(f"{category_count} Gerichte in dieser Kategorie        Gesamt: {total_count} Gerichte")
+
+    def _update_buttons(self) -> None:
+        has_category = self.current_category_id is not None
+        has_item = self.current_item_id is not None
+        for button in [
+            self.rename_category_button,
+            self.toggle_category_button,
+            self.delete_category_button,
+            self.move_category_up_button,
+            self.move_category_down_button,
+            self.add_item_button,
+        ]:
+            button.setEnabled(has_category)
+        for button in [self.duplicate_item_button, self.delete_item_button, self.move_item_up_button, self.move_item_down_button]:
+            button.setEnabled(has_item)
+        for key in ["new_item", "duplicate", "save"]:
+            self.actions[key].setEnabled(has_category if key == "new_item" else has_item)
+
+    def _run_user_action(self, action, success_message: str | None = None):
+        try:
+            result = action()
+            if result:
+                LOGGER.info("Action completed: %s", result)
+            if success_message:
+                self.statusBar().showMessage(success_message, 3000)
+            return result
+        except Exception as exc:
+            LOGGER.exception("User action failed")
+            QMessageBox.critical(self, "Fehler", str(exc))
+            return None
+
+
+def run_app(session_factory) -> int:
+    app = QApplication([])
+    apply_theme(app)
+    window = MainWindow(session_factory)
+    window.show()
+    return app.exec()

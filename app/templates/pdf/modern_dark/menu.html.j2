@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>{{ settings.restaurant_name }} Speisekarte</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 14mm 12mm 16mm;
+      @bottom-center {
+        content: counter(page);
+        color: #c9b18a;
+        font-size: 9pt;
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #17100d;
+      color: #fff3df;
+      line-height: 1.35;
+    }
+
+    .page {
+      min-height: 100vh;
+      padding: 12mm;
+      background:
+        linear-gradient(90deg, rgba(185, 63, 36, .18), transparent 34%),
+        #17100d;
+    }
+
+    header {
+      border-bottom: 2px solid #b93f24;
+      padding-bottom: 7mm;
+      margin-bottom: 8mm;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 34pt;
+      letter-spacing: 0;
+      color: #ffd38a;
+    }
+
+    .subtitle {
+      margin: 1mm 0 0;
+      color: #d7b886;
+      font-size: 12pt;
+    }
+
+    .category {
+      break-inside: avoid;
+      margin: 0 0 8mm;
+    }
+
+    h2 {
+      margin: 0 0 3mm;
+      color: #f0a33b;
+      font-size: 18pt;
+      border-bottom: 1px solid rgba(240, 163, 59, .42);
+      padding-bottom: 2mm;
+    }
+
+    .menu-item {
+      break-inside: avoid;
+      padding: 2.7mm 0;
+      border-bottom: 1px solid rgba(255, 243, 223, .14);
+    }
+
+    .line {
+      display: flex;
+      justify-content: space-between;
+      gap: 8mm;
+      align-items: baseline;
+    }
+
+    h3 {
+      margin: 0;
+      font-size: 11.5pt;
+      color: #fff8ec;
+    }
+
+    .price {
+      white-space: nowrap;
+      color: #ffd38a;
+      font-weight: 700;
+    }
+
+    .description {
+      margin: 1mm 0 0;
+      color: #d5c4ad;
+      font-size: 9.5pt;
+    }
+
+    .meta {
+      margin-top: 1mm;
+      color: #b8a285;
+      font-size: 8pt;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>{{ settings.restaurant_name }}</h1>
+      {% if settings.subtitle %}<p class="subtitle">{{ settings.subtitle }}</p>{% endif %}
+      {% if settings.address or settings.phone %}<p class="subtitle">{{ settings.address }} {{ settings.phone }}</p>{% endif %}
+    </header>
+    {% for category in categories %}
+      <section class="category">
+        <h2>{{ category.name }}</h2>
+        {% for item in category.items %}
+          <article class="menu-item">
+            <div class="line">
+              <h3>{{ item.name }}</h3>
+              <div class="price">{{ format_price(item.price) }}</div>
+            </div>
+            {% if item.description %}<p class="description">{{ item.description }}</p>{% endif %}
+            {% if item.allergens or item.additives or item.vegan or item.vegetarian or item.spicy_level %}
+              <div class="meta">
+                {% if item.vegan %}vegan{% elif item.vegetarian %}vegetarisch{% endif %}
+                {% if item.spicy_level %} Schärfe {{ item.spicy_level }}{% endif %}
+                {% if item.allergens %} Allergene: {{ item.allergens }}{% endif %}
+                {% if item.additives %} Zusatzstoffe: {{ item.additives }}{% endif %}
+              </div>
+            {% endif %}
+          </article>
+        {% endfor %}
+      </section>
+    {% endfor %}
+  </div>
+</body>
+</html>

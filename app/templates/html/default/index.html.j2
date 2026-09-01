@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#8c371a">
+  <title>{{ settings.restaurant_name }} Speisekarte</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      {% if settings.logo_path %}
+        <img class="brand-logo" src="{{ settings.logo_path }}" alt="{{ settings.restaurant_name }}">
+      {% else %}
+        <div class="brand-mark">{{ settings.restaurant_name }}</div>
+      {% endif %}
+      <div class="header-copy">
+        <span>Speisekarte</span>
+        {% if settings.subtitle %}<p>{{ settings.subtitle }}</p>{% endif %}
+      </div>
+    </div>
+  </header>
+  <div class="nav-wrap">
+    <div class="category-nav-shell">
+      <button class="nav-arrow nav-arrow-left" type="button" aria-label="Kategorien nach links scrollen" data-scroll-nav="left">‹</button>
+      <nav class="category-nav" aria-label="Kategorien">
+        {% for category in categories %}
+          <a href="#category-{{ category.id }}">{{ category.name }}</a>
+        {% endfor %}
+      </nav>
+      <button class="nav-arrow nav-arrow-right" type="button" aria-label="Kategorien nach rechts scrollen" data-scroll-nav="right">›</button>
+    </div>
+  </div>
+  <main>
+    {% for category in categories %}
+      <section class="category" id="category-{{ category.id }}">
+        <div class="category-heading">
+          <div>
+            <span>{{ "%02d" | format(loop.index) }}</span>
+            <h2>{{ category.name }}</h2>
+            {% if category.description %}<p class="category-description">{{ category.description }}</p>{% endif %}
+          </div>
+        </div>
+        <div class="items">
+          {% for item in category.items %}
+            <article class="menu-item" id="item-{{ item.id }}">
+              <div class="item-main">
+                <div>
+                  <h3>{{ item.name }}</h3>
+                  <div class="badges">
+                    {% if item.vegan %}<span>Vegan</span>{% elif item.vegetarian %}<span>Vegetarisch</span>{% endif %}
+                    {% if item.spicy_level > 0 %}<span>Scharf {{ item.spicy_level }}</span>{% endif %}
+                  </div>
+                </div>
+                <strong>{{ format_price(item.price) }}</strong>
+              </div>
+              {% if item.description %}<p class="description">{{ item.description }}</p>{% endif %}
+              {% if item.allergens or item.additives %}
+                <div class="details">
+                  {% if item.allergens %}<span>Allergene: {{ item.allergens }}</span>{% endif %}
+                  {% if item.additives %}<span>Zusatzstoffe: {{ item.additives }}</span>{% endif %}
+                </div>
+              {% endif %}
+              {% if item.second_price %}
+                <div class="second-price">
+                  <span>{{ item.second_price_label or "Weitere Größe" }}</span>
+                  <strong>{{ format_price(item.second_price) }}</strong>
+                </div>
+              {% endif %}
+              <div class="menu-action-slot"
+                data-item-id="{{ item.id }}"
+                data-name="{{ item.name }}"
+                data-price-cents="{{ (item.price * 100) | round | int }}"
+                data-second-price-cents="{{ (item.second_price * 100) | round | int if item.second_price else '' }}"
+                data-second-price-label="{{ item.second_price_label or '' }}"
+                data-currency="{{ settings.currency or 'EUR' }}">
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      </section>
+    {% endfor %}
+  </main>
+  <footer>
+    <div class="footer-inner">
+      <strong>{{ settings.restaurant_name }}</strong>
+      {% if settings.menu_url %}<span>{{ settings.menu_url }}</span>{% endif %}
+    </div>
+  </footer>
+  <div class="selection-bar" data-selection-bar hidden>
+    <div>
+      <strong>Meine Auswahl</strong>
+      <span data-selection-summary>0 Artikel · 0,00 €</span>
+    </div>
+    <button type="button" data-open-selection> Anzeigen </button>
+  </div>
+  <div class="selection-drawer" data-selection-drawer hidden>
+    <div class="drawer-backdrop" data-close-selection></div>
+    <aside class="drawer-panel" aria-labelledby="selection-title" role="dialog" aria-modal="true">
+      <div class="drawer-header">
+        <div>
+          <span>Merkliste</span>
+          <h2 id="selection-title">Meine Auswahl</h2>
+        </div>
+        <button type="button" class="icon-button" aria-label="Auswahl schließen" data-close-selection>×</button>
+      </div>
+      <div class="selection-empty" data-selection-empty>
+        <strong>Noch nichts gemerkt.</strong>
+        <p>Tippe bei einem Gericht auf „Merken“.</p>
+      </div>
+      <div class="selection-items" data-selection-items></div>
+      <div class="selection-total">
+        <span>Gesamt</span>
+        <strong data-selection-total>0,00 €</strong>
+      </div>
+      <div class="drawer-actions">
+        <button type="button" class="secondary-action" data-show-large>Groß anzeigen</button>
+        <button type="button" class="danger-action" data-clear-selection>Auswahl leeren</button>
+      </div>
+    </aside>
+  </div>
+  <div class="large-view" data-large-view hidden>
+    <div class="large-view-inner">
+      <button type="button" class="secondary-action" data-close-large>Zurück</button>
+      <span>MEINE AUSWAHL</span>
+      <div data-large-items></div>
+      <div class="large-total">
+        <span>GESAMT</span>
+        <strong data-large-total>0,00 €</strong>
+      </div>
+    </div>
+  </div>
+  <script src="assets/menu.js"></script>
+</body>
+</html>
