@@ -5,132 +5,293 @@
   <title>{{ settings.restaurant_name }} Speisekarte</title>
   <style>
     @page {
-      size: A4;
-      margin: 14mm 12mm 16mm;
-      @bottom-center {
-        content: counter(page);
-        color: #c9b18a;
-        font-size: 9pt;
-      }
+      size: A4 portrait;
+      margin: 18mm 13mm 16mm;
     }
 
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      background: #14110f;
+    }
 
     body {
       margin: 0;
-      font-family: "Segoe UI", Arial, sans-serif;
-      background: #17100d;
-      color: #fff3df;
-      line-height: 1.35;
-    }
-
-    .page {
-      min-height: 100vh;
-      padding: 12mm;
+      color: #f9f1df;
       background:
-        linear-gradient(90deg, rgba(185, 63, 36, .18), transparent 34%),
-        #17100d;
+        radial-gradient(circle at 12% 8%, rgba(217, 142, 115, .12), transparent 34mm),
+        radial-gradient(circle at 88% 18%, rgba(226, 182, 50, .08), transparent 42mm),
+        linear-gradient(135deg, rgba(140, 55, 26, .22), transparent 48%),
+        #151515;
+      font-family: Inter, Arial, "Helvetica Neue", sans-serif;
+      line-height: 1.22;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
 
-    header {
-      border-bottom: 2px solid #b93f24;
-      padding-bottom: 7mm;
-      margin-bottom: 8mm;
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 5mm;
+      z-index: -1;
+      border: .35mm solid rgba(249, 241, 223, .28);
+      box-shadow: 0 0 0 .3mm rgba(179, 38, 30, .55);
     }
 
-    h1 {
-      margin: 0;
-      font-size: 34pt;
-      letter-spacing: 0;
-      color: #ffd38a;
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      background-image:
+        linear-gradient(90deg, rgba(255, 255, 255, .035) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(255, 255, 255, .025) 1px, transparent 1px);
+      background-size: 7mm 7mm;
+      opacity: .45;
     }
 
-    .subtitle {
-      margin: 1mm 0 0;
-      color: #d7b886;
-      font-size: 12pt;
+    .brand {
+      color: #f9f1df;
+      font-family: "Arial Narrow", "Roboto Condensed", "Helvetica Neue", Arial, sans-serif;
+      font-size: 26pt;
+      font-weight: 900;
+      letter-spacing: .02em;
+      text-transform: uppercase;
+    }
+
+    .brand .accent {
+      color: #df3a2e;
+    }
+
+    main {
+      columns: 2;
+      column-gap: 10mm;
+      column-fill: balance;
+    }
+
+    .document-header {
+      column-span: all;
+      break-after: avoid;
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 8mm;
+      margin: 0 0 7mm;
+      padding: 2mm 0 4mm;
+      border-bottom: .45mm solid rgba(179, 38, 30, .72);
+    }
+
+    .document-header p {
+      margin: 1.5mm 0 0;
+      color: #d7a84a;
+      font-size: 9.5pt;
+      font-weight: 800;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .contact {
+      color: rgba(249, 241, 223, .72);
+      font-size: 8pt;
+      font-weight: 700;
+      text-align: right;
+    }
+
+    .section-label {
+      break-inside: avoid;
+      margin: 0 0 5mm;
+      padding: 3mm 4mm;
+      border: .35mm solid rgba(217, 142, 115, .44);
+      color: #f0d1a0;
+      background: rgba(107, 40, 20, .42);
+      font-family: "Arial Narrow", "Roboto Condensed", "Helvetica Neue", Arial, sans-serif;
+      font-size: 15pt;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .05em;
     }
 
     .category {
-      break-inside: avoid;
-      margin: 0 0 8mm;
+      break-inside: auto;
+      margin: 0 0 7mm;
     }
 
-    h2 {
-      margin: 0 0 3mm;
-      color: #f0a33b;
-      font-size: 18pt;
-      border-bottom: 1px solid rgba(240, 163, 59, .42);
-      padding-bottom: 2mm;
+    .category-heading {
+      break-after: avoid;
+      margin: 0 0 2.4mm;
+      padding-bottom: 1.4mm;
+      border-bottom: .25mm solid rgba(215, 168, 74, .46);
+    }
+
+    .category h2 {
+      margin: 0;
+      color: #94b447;
+      font-family: "Arial Narrow", "Roboto Condensed", "Helvetica Neue", Arial, sans-serif;
+      font-size: 18.5pt;
+      line-height: 1;
+      font-weight: 900;
+      letter-spacing: .02em;
+      text-transform: uppercase;
+    }
+
+    .category:nth-of-type(3n) h2 {
+      color: #e58a1f;
+    }
+
+    .category:nth-of-type(4n) h2 {
+      color: #d83b74;
+    }
+
+    .category:nth-of-type(5n) h2 {
+      color: #35a4aa;
+    }
+
+    .category-description {
+      margin: 1mm 0 0;
+      color: rgba(249, 241, 223, .7);
+      font-size: 8pt;
     }
 
     .menu-item {
       break-inside: avoid;
-      padding: 2.7mm 0;
-      border-bottom: 1px solid rgba(255, 243, 223, .14);
+      padding: 1.8mm 0 1.7mm;
+      border-bottom: .22mm solid rgba(249, 241, 223, .16);
     }
 
-    .line {
+    .menu-item-header {
       display: flex;
-      justify-content: space-between;
-      gap: 8mm;
       align-items: baseline;
+      justify-content: space-between;
+      gap: 3.5mm;
     }
 
-    h3 {
+    .menu-item h3 {
       margin: 0;
-      font-size: 11.5pt;
-      color: #fff8ec;
+      min-width: 0;
+      color: #f9f1df;
+      font-size: 10.3pt;
+      line-height: 1.08;
+      font-weight: 900;
     }
 
     .price {
+      flex: 0 0 auto;
       white-space: nowrap;
-      color: #ffd38a;
-      font-weight: 700;
+      color: #f9f1df;
+      font-size: 10pt;
+      font-weight: 900;
     }
 
     .description {
-      margin: 1mm 0 0;
-      color: #d5c4ad;
-      font-size: 9.5pt;
+      margin: .7mm 0 0;
+      color: rgba(249, 241, 223, .78);
+      font-size: 8.15pt;
+      line-height: 1.24;
+    }
+
+    .variant-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 3mm;
+      margin-top: .8mm;
+      color: rgba(249, 241, 223, .84);
+      font-size: 8pt;
+      font-weight: 800;
+    }
+
+    .variant-line strong {
+      flex: 0 0 auto;
+      white-space: nowrap;
+      color: #f0d1a0;
     }
 
     .meta {
-      margin-top: 1mm;
-      color: #b8a285;
-      font-size: 8pt;
+      margin-top: .9mm;
+      color: #d7a84a;
+      font-size: 7pt;
+      font-weight: 800;
+    }
+
+    .dense .menu-item {
+      padding-top: 1.25mm;
+      padding-bottom: 1.15mm;
+    }
+
+    .dense .menu-item h3,
+    .dense .price {
+      font-size: 9.6pt;
+    }
+
+    .dense .description,
+    .dense .variant-line {
+      font-size: 7.45pt;
     }
   </style>
 </head>
 <body>
-  <div class="page">
-    <header>
-      <h1>{{ settings.restaurant_name }}</h1>
-      {% if settings.subtitle %}<p class="subtitle">{{ settings.subtitle }}</p>{% endif %}
-      {% if settings.address or settings.phone %}<p class="subtitle">{{ settings.address }} {{ settings.phone }}</p>{% endif %}
-    </header>
+  <main>
+    <section class="document-header">
+      <div>
+        <div class="brand">
+          {% set brand = settings.restaurant_name or "TacoMex" %}
+          {% if brand|lower == "tacomex" %}
+            TACO<span class="accent">MEX</span>
+          {% else %}
+            {{ brand }}
+          {% endif %}
+        </div>
+        <p>{{ settings.subtitle or "Mexican Restaurant · Tapas & Cocktails" }}</p>
+      </div>
+      <div class="contact">{{ settings.address or settings.website_url or "tacomex.de" }}</div>
+    </section>
+
+    {% set ns = namespace(last_type=None) %}
     {% for category in categories %}
-      <section class="category">
-        <h2>{{ category.name }}</h2>
+      {% if category.type.value != ns.last_type %}
+        {% if category.type.value == "drinks" %}
+          <div class="section-label">Getränke</div>
+        {% elif category.type.value == "cocktails" and category.name|lower != "cocktails" %}
+          <div class="section-label">Cocktails</div>
+        {% elif category.type.value == "dessert" and category.name|lower != "desserts" %}
+          <div class="section-label">Desserts</div>
+        {% elif category.type.value not in ["food", "drinks", "cocktails", "dessert"] %}
+          <div class="section-label">Weitere Spezialitäten</div>
+        {% endif %}
+        {% set ns.last_type = category.type.value %}
+      {% endif %}
+
+      <section class="category {% if category.type.value in ['drinks', 'cocktails'] %}dense{% endif %}">
+        <div class="category-heading">
+          <h2>{{ category.name }}</h2>
+          {% if category.description %}<p class="category-description">{{ category.description }}</p>{% endif %}
+        </div>
         {% for item in category.items %}
           <article class="menu-item">
-            <div class="line">
+            <div class="menu-item-header">
               <h3>{{ item.name }}</h3>
               <div class="price">{{ format_price(item.price) }}</div>
             </div>
             {% if item.description %}<p class="description">{{ item.description }}</p>{% endif %}
+            {% if item.second_price %}
+              <div class="variant-line">
+                <span>{{ item.second_price_label or "Weitere Größe" }}</span>
+                <strong>{{ format_price(item.second_price) }}</strong>
+              </div>
+            {% endif %}
             {% if item.allergens or item.additives or item.vegan or item.vegetarian or item.spicy_level %}
               <div class="meta">
-                {% if item.vegan %}vegan{% elif item.vegetarian %}vegetarisch{% endif %}
-                {% if item.spicy_level %} Schärfe {{ item.spicy_level }}{% endif %}
-                {% if item.allergens %} Allergene: {{ item.allergens }}{% endif %}
-                {% if item.additives %} Zusatzstoffe: {{ item.additives }}{% endif %}
+                {% if item.vegan %}VEGAN{% elif item.vegetarian %}VEGETARISCH{% endif %}
+                {% if item.spicy_level %}{% if item.vegan or item.vegetarian %} · {% endif %}pikant {{ item.spicy_level }}{% endif %}
+                {% if item.allergens %} · Allergene: {{ item.allergens }}{% endif %}
+                {% if item.additives %} · Zusatzstoffe: {{ item.additives }}{% endif %}
               </div>
             {% endif %}
           </article>
         {% endfor %}
       </section>
     {% endfor %}
-  </div>
+  </main>
 </body>
 </html>

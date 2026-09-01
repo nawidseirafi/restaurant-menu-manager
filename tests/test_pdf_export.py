@@ -1,0 +1,61 @@
+from decimal import Decimal
+
+from app.database.repositories import MenuRepository
+from app.models import MenuItem
+from app.services.pdf_exporter import PdfExporter
+
+
+def test_pdf_template_renders_full_active_menu(session):
+    repo = MenuRepository(session)
+    html = PdfExporter().render_html(session)
+
+    for category in repo.list_categories(active_only=True):
+        assert category.name in html
+        for item in repo.list_items(category.id, active_only=True):
+            assert item.name in html
+            assert f"{item.price:.2f}".replace(".", ",") in html
+
+
+def test_pdf_template_renders_second_price(session):
+    repo = MenuRepository(session)
+    item = repo.list_items()[0]
+    item.second_price = Decimal("19.90")
+    item.second_price_label = "2 Pers."
+    session.commit()
+
+    html = PdfExporter().render_html(session)
+
+    assert "2 Pers." in html
+    assert "19,90" in html
+
+
+def test_pdf_template_uses_natural_page_flow(session):
+    html = PdfExporter().render_html(session)
+
+    assert "page-break-after: always" not in html
+    assert "page-break-before" not in html
+    assert "break-before" not in html
+    assert "break-after: always" not in html
+    assert "min-height: 297mm" not in html
+    assert "height: 100vh" not in html
+    assert "cover" not in html.lower()
+
+
+def test_pdf_template_handles_long_descriptions(session):
+    repo = MenuRepository(session)
+    category = repo.list_categories(active_only=True)[0]
+    repo.save_item(
+        MenuItem(
+            category_id=category.id,
+            name="Lange Beschreibung Test",
+            description=" ".join(["Sehr ausfuehrliche Beschreibung"] * 80),
+            price=Decimal("12.40"),
+            sort_order=999,
+            active=True,
+        )
+    )
+
+    html = PdfExporter().render_html(session)
+
+    assert "Lange Beschreibung Test" in html
+    assert "Sehr ausfuehrliche Beschreibung" in html
