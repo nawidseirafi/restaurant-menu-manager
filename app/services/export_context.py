@@ -10,7 +10,7 @@ from app.database.repositories import MenuRepository
 def format_price(value: Decimal | None, currency: str = "EUR") -> str:
     if value is None:
         return ""
-    suffix = "EUR" if currency != "EUR" else "EUR"
+    suffix = currency if currency != "EUR" else "€"
     return f"{Decimal(value):.2f} {suffix}".replace(".", ",")
 
 
