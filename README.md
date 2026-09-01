@@ -90,7 +90,7 @@ Eine PyInstaller-Paketierung kann spaeter beispielsweise so vorbereitet werden:
 
 ```bash
 pip install pyinstaller
-pyinstaller --name "TacoMex Menu Manager" --windowed --add-data "app/templates;app/templates" app/main.py
+pyinstaller --clean --name "TacoMex Menu Manager" --windowed --add-data "app/templates:app/templates" app/main.py
 ```
 
 Vor der finalen Paketierung sollten Icons, Migrationsstrategie und der Zielpfad fuer Benutzerdaten unter Windows festgelegt werden.
