@@ -54,6 +54,8 @@ from app.services.qr_exporter import QrExporter
 LOGGER = logging.getLogger(__name__)
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp"}
+ITEM_ID_ROLE = Qt.UserRole
+CATEGORY_ID_ROLE = Qt.UserRole + 1
 
 
 class ReorderTableWidget(QTableWidget):
@@ -161,6 +163,10 @@ class MainWindow(QMainWindow):
         self._autosave_timer.setSingleShot(True)
         self._autosave_timer.setInterval(450)
         self._autosave_timer.timeout.connect(self._perform_autosave)
+        self._search_timer = QTimer(self)
+        self._search_timer.setSingleShot(True)
+        self._search_timer.setInterval(120)
+        self._search_timer.timeout.connect(self.reload_items)
 
         self.setWindowTitle("TacoMex Menu Manager")
         self.setMinimumSize(1120, 720)
@@ -282,7 +288,13 @@ class MainWindow(QMainWindow):
         panel = self._panel_frame()
         layout = QVBoxLayout(panel)
         self.items_title = self._panel_title("GERICHTE")
-        layout.addWidget(self._panel_header(self.items_title, self.new_item, "Gericht hinzufügen"))
+        self.item_search_edit = QLineEdit()
+        self.item_search_edit.setPlaceholderText("Gericht suchen…")
+        self.item_search_edit.setClearButtonEnabled(True)
+        self.item_search_edit.setFixedWidth(310)
+        self.item_search_edit.setProperty("class", "searchField")
+        self.item_search_edit.textChanged.connect(self.on_search_changed)
+        layout.addWidget(self._items_header())
         self.items_table = ReorderTableWidget(0, 6)
         self.items_table.setHorizontalHeaderLabels(["Name", "Preis", "Aktiv", "Veg.", "Vegan", "Scharf"])
         self.items_table.setSelectionBehavior(QAbstractItemView.SelectRows)
@@ -423,6 +435,22 @@ class MainWindow(QMainWindow):
         layout.addWidget(button)
         return widget
 
+    def _items_header(self) -> QWidget:
+        widget = QWidget()
+        layout = QHBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+        layout.addWidget(self.items_title)
+        layout.addStretch(1)
+        layout.addWidget(self.item_search_edit)
+        button = QToolButton()
+        button.setText("+")
+        button.setToolTip("Gericht hinzufügen")
+        button.setProperty("class", "addButton")
+        button.clicked.connect(self.new_item)
+        layout.addWidget(button)
+        return widget
+
     def _required_label(self, text: str) -> QLabel:
         label = QLabel(text)
         label.setProperty("class", "required")
@@ -469,6 +497,23 @@ class MainWindow(QMainWindow):
         QShortcut(QKeySequence.Delete, self, activated=self.delete_selected)
         QShortcut(QKeySequence("F2"), self, activated=self.rename_category)
         QShortcut(QKeySequence("Ctrl+D"), self, activated=self.duplicate_item)
+        QShortcut(QKeySequence.Find, self, activated=self.focus_search)
+        QShortcut(QKeySequence("Esc"), self, activated=self.clear_search)
+
+    def on_search_changed(self) -> None:
+        if self._loading:
+            return
+        self._search_timer.start()
+
+    def focus_search(self) -> None:
+        self.item_search_edit.setFocus()
+        self.item_search_edit.selectAll()
+
+    def clear_search(self) -> None:
+        if self.item_search_edit.text():
+            self.item_search_edit.clear()
+        elif self.item_search_edit.hasFocus():
+            self.items_table.setFocus()
 
     def reload_categories(self, select_category_id: int | None = None) -> None:
         self._loading = True
@@ -497,8 +542,18 @@ class MainWindow(QMainWindow):
         self._update_buttons()
 
     def reload_items(self, select_item_id: int | None = None) -> None:
+        if self._search_query():
+            self.reload_search_results(select_item_id)
+            return
         self._loading = True
         self.items_table.setRowCount(0)
+        self.items_table.setColumnCount(6)
+        self.items_table.setHorizontalHeaderLabels(["Name", "Preis", "Aktiv", "Veg.", "Vegan", "Scharf"])
+        self.items_table.setDragEnabled(True)
+        self.items_table.setDragDropMode(QAbstractItemView.InternalMove)
+        self.items_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        for column in range(1, 6):
+            self.items_table.horizontalHeader().setSectionResizeMode(column, QHeaderView.ResizeToContents)
         category = self.repo.get_category(self.current_category_id) if self.current_category_id else None
         self.items_title.setText(f"GERICHTE - {category.name.upper()}" if category else "GERICHTE")
         if not self.current_category_id:
@@ -517,12 +572,7 @@ class MainWindow(QMainWindow):
                 "Ja" if item.vegan else "",
                 str(item.spicy_level) if item.spicy_level else "",
             ]
-            for col, value in enumerate(values):
-                cell = QTableWidgetItem(value)
-                cell.setData(Qt.UserRole, item.id)
-                if col in {1, 2, 3, 4, 5}:
-                    cell.setTextAlignment(Qt.AlignCenter)
-                self.items_table.setItem(row, col, cell)
+            self._set_item_row(row, item, values, center_columns={1, 2, 3, 4, 5})
             self.items_table.setRowHeight(row, 42)
         self._loading = False
 
@@ -534,6 +584,49 @@ class MainWindow(QMainWindow):
         self._update_status()
         self._update_buttons()
 
+    def reload_search_results(self, select_item_id: int | None = None) -> None:
+        if not self._autosave_if_dirty():
+            return
+        self._loading = True
+        query = self._search_query()
+        self.items_title.setText("GERICHTE - SUCHE")
+        self.items_table.setRowCount(0)
+        self.items_table.setColumnCount(3)
+        self.items_table.setHorizontalHeaderLabels(["Name", "Kategorie", "Preis"])
+        self.items_table.setDragEnabled(False)
+        self.items_table.setDragDropMode(QAbstractItemView.NoDragDrop)
+        self.items_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.items_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        self.items_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+
+        results = self._search_items(query)
+        self.items_table.setRowCount(len(results))
+        for row, item in enumerate(results):
+            category_name = item.category.name if item.category else ""
+            values = [
+                item.name,
+                category_name,
+                f"{item.price:.2f} EUR".replace(".", ","),
+            ]
+            self._set_item_row(row, item, values, center_columns={2})
+            self.items_table.setRowHeight(row, 42)
+        self._loading = False
+
+        if results:
+            target_id = select_item_id or self.current_item_id
+            if target_id and any(item.id == target_id for item in results):
+                self._select_item_by_id(target_id)
+            else:
+                self.current_item_id = None
+                self.items_table.clearSelection()
+                self._clear_editor()
+            self.statusBar().showMessage(f"{len(results)} Treffer")
+        else:
+            self.current_item_id = None
+            self._clear_editor()
+            self.statusBar().showMessage("Keine Gerichte gefunden")
+        self._update_buttons()
+
     def on_category_selected(self) -> None:
         if self._loading:
             return
@@ -543,6 +636,9 @@ class MainWindow(QMainWindow):
         if not self._autosave_if_dirty():
             return
         self.current_category_id = selected[0].data(Qt.UserRole)
+        if self._search_query():
+            self._update_status()
+            return
         self.current_item_id = None
         self.reload_items()
 
@@ -555,6 +651,7 @@ class MainWindow(QMainWindow):
             self._update_buttons()
             return
         new_id = selected[0].data(Qt.UserRole)
+        category_id = selected[0].data(CATEGORY_ID_ROLE)
         if new_id == self.current_item_id:
             return
         if not self._autosave_if_dirty():
@@ -563,6 +660,9 @@ class MainWindow(QMainWindow):
         self.current_item_id = new_id
         item = self.repo.get_item(self.current_item_id)
         if item:
+            if self._search_query() and category_id:
+                self.current_category_id = category_id
+                self._select_category_by_id(category_id)
             self._load_item(item)
         self._update_buttons()
 
@@ -870,6 +970,39 @@ class MainWindow(QMainWindow):
         item.image_path = self.image_path_edit.text().strip() or None
         item.notes = self.notes_edit.toPlainText().strip() or None
 
+    def _search_query(self) -> str:
+        return self.item_search_edit.text().strip()
+
+    def _search_items(self, query: str) -> list[MenuItem]:
+        needle = query.casefold()
+        matches = []
+        for category in self.repo.menu_tree(active_only=True):
+            category_text = category.name.casefold()
+            for item in category.items:
+                searchable = " ".join(
+                    [
+                        item.name or "",
+                        item.description or "",
+                        category_text,
+                        item.allergens or "",
+                        item.additives or "",
+                        item.notes or "",
+                    ]
+                ).casefold()
+                if needle in searchable:
+                    matches.append(item)
+        return matches
+
+    def _set_item_row(self, row: int, item: MenuItem, values: list[str], center_columns: set[int] | None = None) -> None:
+        center_columns = center_columns or set()
+        for col, value in enumerate(values):
+            cell = QTableWidgetItem(value)
+            cell.setData(ITEM_ID_ROLE, item.id)
+            cell.setData(CATEGORY_ID_ROLE, item.category_id)
+            if col in center_columns:
+                cell.setTextAlignment(Qt.AlignCenter)
+            self.items_table.setItem(row, col, cell)
+
     def _autosave_if_dirty(self) -> bool:
         if self._loading or not self._dirty or not self.current_item_id:
             return True
@@ -962,14 +1095,22 @@ class MainWindow(QMainWindow):
         for row in range(self.items_table.rowCount()):
             cell = self.items_table.item(row, 0)
             if cell and cell.data(Qt.UserRole) == item.id:
-                values = [
-                    f"{item.sort_order}.  {item.name}",
-                    f"{float(item.price):.2f} EUR".replace(".", ","),
-                    "Ja" if item.active else "Nein",
-                    "Ja" if item.vegetarian else "",
-                    "Ja" if item.vegan else "",
-                    str(item.spicy_level) if item.spicy_level else "",
-                ]
+                if self._search_query():
+                    category = self.repo.get_category(item.category_id)
+                    values = [
+                        item.name,
+                        category.name if category else "",
+                        f"{float(item.price):.2f} EUR".replace(".", ","),
+                    ]
+                else:
+                    values = [
+                        f"{item.sort_order}.  {item.name}",
+                        f"{float(item.price):.2f} EUR".replace(".", ","),
+                        "Ja" if item.active else "Nein",
+                        "Ja" if item.vegetarian else "",
+                        "Ja" if item.vegan else "",
+                        str(item.spicy_level) if item.spicy_level else "",
+                    ]
                 for col, value in enumerate(values):
                     table_item = self.items_table.item(row, col)
                     if table_item:

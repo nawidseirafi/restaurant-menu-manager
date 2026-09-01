@@ -184,6 +184,18 @@ def global_stylesheet() -> str:
         border-color: #2b2f34;
     }}
 
+    QLineEdit[class="searchField"] {{
+        min-height: 28px;
+        padding: 5px 9px;
+        border-radius: 6px;
+        background-color: #24282d;
+    }}
+
+    QLineEdit[class="searchField"]:focus {{
+        border-color: {c["border_focus"]};
+        background-color: {c["field_hover"]};
+    }}
+
     QComboBox::drop-down {{
         background: {c["surface_alt"]};
         border-left: 1px solid {c["border"]};
