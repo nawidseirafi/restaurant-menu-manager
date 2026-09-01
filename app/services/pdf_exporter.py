@@ -16,11 +16,18 @@ class PdfExporter:
         root = Path(__file__).resolve().parents[1]
         self.templates_dir = templates_dir or root / "templates" / "pdf"
 
-    @staticmethod
-    def _file_data_uri(path: Path) -> str:
+    _EXTRA_MIME_TYPES = {
+        ".woff2": "font/woff2",
+        ".woff": "font/woff",
+        ".ttf": "font/ttf",
+        ".otf": "font/otf",
+    }
+
+    @classmethod
+    def _file_data_uri(cls, path: Path) -> str:
         if not path.exists() or not path.is_file():
             return ""
-        mime = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+        mime = cls._EXTRA_MIME_TYPES.get(path.suffix.lower()) or mimetypes.guess_type(path.name)[0] or "application/octet-stream"
         encoded = base64.b64encode(path.read_bytes()).decode("ascii")
         return f"data:{mime};base64,{encoded}"
 

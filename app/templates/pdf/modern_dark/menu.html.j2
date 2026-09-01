@@ -7,30 +7,43 @@
 @page cover { size:A4 portrait; margin:0; }
 @page menu { size:A4 portrait; margin:11mm 11mm 12mm; background:#11100e; }
 @page outro { size:A4 portrait; margin:0; }
+@font-face{font-family:"Cover Serif";font-weight:700;font-style:normal;src:url("{{ asset_data('fonts/playfair-700.woff2') }}") format("woff2")}
+@font-face{font-family:"Cover Serif";font-weight:500;font-style:italic;src:url("{{ asset_data('fonts/playfair-500i.woff2') }}") format("woff2")}
+@font-face{font-family:"Cover Sans";font-weight:400;font-style:normal;src:url("{{ asset_data('fonts/jost-400.woff2') }}") format("woff2")}
+@font-face{font-family:"Cover Sans";font-weight:500;font-style:normal;src:url("{{ asset_data('fonts/jost-500.woff2') }}") format("woff2")}
+@font-face{font-family:"Cover Sans";font-weight:600;font-style:normal;src:url("{{ asset_data('fonts/jost-600.woff2') }}") format("woff2")}
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;background:#11100e;color:#f3ead7;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 body{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:8.4pt;line-height:1.22}
 
 /* ---------- COVER ---------- */
-.cover{page:cover;width:210mm;height:297mm;position:relative;overflow:hidden;background:#0e0d0b;color:#efe1bf}
-.cover:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 17% 12%,rgba(180,48,29,.18),transparent 27%),radial-gradient(circle at 84% 48%,rgba(146,160,47,.08),transparent 28%),repeating-linear-gradient(0deg,rgba(255,255,255,.012) 0,rgba(255,255,255,.012) 1px,transparent 1px,transparent 4px);z-index:0}
-.cover-inner{position:absolute;inset:7mm 7mm 14mm;border:.3mm solid rgba(230,212,172,.34);padding:10mm 9mm 0;z-index:2}
-.cover-inner:after{content:"";position:absolute;inset:2.2mm;border:.16mm solid rgba(176,43,31,.5);pointer-events:none}
-.cover-ornament{height:7mm;border-top:.85mm solid #a92c23;border-bottom:.35mm solid #d17a26;position:relative;margin-bottom:6mm}
-.cover-ornament:after{content:"◆  ◆  ◆  ◆  ◆  ◆  ◆";position:absolute;left:0;right:0;top:-2.45mm;text-align:center;color:#c83426;font-size:7.5pt;letter-spacing:4mm}
-.cover-brand{font-family:Impact,"Arial Narrow",sans-serif;font-weight:900;font-size:64pt;line-height:.86;letter-spacing:.012em;text-transform:uppercase;margin:0;color:#ebdbb9;text-shadow:0 1mm 0 rgba(0,0,0,.48)}
-.cover-brand b{color:#c82f25}.cover-tag{margin-top:4mm;color:#a8b83b;font-size:12.5pt;font-weight:900;letter-spacing:.16em;text-transform:uppercase}
-.cover-rule{margin-top:5mm;border-top:.7mm solid #a92c23;border-bottom:.2mm solid #d27e2d;height:2.6mm}
-.cover-slogan{position:absolute;left:19mm;top:80mm;z-index:5;font-family:Impact,"Arial Narrow",sans-serif;color:#df8428;font-size:35pt;line-height:1.01;letter-spacing:.035em;text-transform:uppercase;margin:0;max-width:102mm;transform:rotate(-1deg);text-shadow:0 1mm 3mm rgba(0,0,0,.5)}
-.cover-slogan:after{content:"";display:block;width:39mm;border-bottom:1mm solid #b82b22;margin:4mm 0 0 11mm;transform:rotate(-2deg)}
-.cover-cactus{position:absolute;right:16mm;top:91mm;width:42mm;height:78mm;object-fit:cover;object-position:center;border-radius:1.5mm;filter:saturate(.92) contrast(1.08);box-shadow:0 4mm 12mm rgba(0,0,0,.52);z-index:3}
-.cover-food{position:absolute;left:0;right:0;bottom:0;width:100%;height:118mm;object-fit:cover;object-position:center 52%;z-index:1;filter:saturate(.98) contrast(1.05)}
-.cover-food-overlay{position:absolute;left:0;right:0;bottom:0;height:130mm;z-index:2;background:linear-gradient(180deg,#0e0d0b 0%,rgba(14,13,11,.88) 10%,rgba(14,13,11,.22) 38%,rgba(14,13,11,.06) 72%,rgba(14,13,11,.22) 100%);pointer-events:none}
-.cover-card{position:absolute;right:17mm;top:168mm;width:56mm;min-height:59mm;padding:7mm 5.5mm 15mm;background:#d8b678;color:#2b2017;transform:rotate(-1.3deg);box-shadow:0 3mm 10mm rgba(0,0,0,.48);font-family:"Arial Narrow",Arial,sans-serif;text-align:center;z-index:6}
-.cover-card strong{display:block;font-family:Impact,"Arial Narrow",sans-serif;font-size:16pt;line-height:1.03;letter-spacing:.025em;text-transform:uppercase;margin-bottom:3.5mm}.cover-card span{font-size:8pt;line-height:1.35;font-weight:700}
-.cover-qr{position:absolute;right:25mm;top:217mm;z-index:8;width:28mm;padding:2.6mm;background:#ead9b5;color:#1b1712;text-align:center;box-shadow:0 2mm 7mm rgba(0,0,0,.5);transform:rotate(.6deg)}.cover-qr img{display:block;width:22.8mm;height:22.8mm;margin:0 auto 1.2mm;background:#fff}.cover-qr strong{font-family:Impact,"Arial Narrow",sans-serif;font-size:6.8pt;letter-spacing:.05em;text-transform:uppercase}
-.cover-footer{position:absolute;left:7mm;right:7mm;bottom:0;height:14mm;background:#a92c23;display:flex;align-items:center;justify-content:center;gap:11mm;color:#ead9b5;font-weight:800;font-size:9pt;letter-spacing:.045em;z-index:10}
-.cover-social{display:flex;gap:3.2mm;font-size:11pt;align-items:center}.social-icon{width:6.5mm;height:6.5mm;border:.4mm solid #e6c36c;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#e6c36c;font-family:Arial,sans-serif;font-weight:900;font-size:7.5pt}.social-icon.ig{font-size:10pt}
+.cover{page:cover;width:210mm;height:297mm;position:relative;overflow:hidden;background:#100e0c;color:#f4ead9}
+.cover-food{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 40%;z-index:0;filter:saturate(.86) contrast(1.03) brightness(.92)}
+.cover-scrim{position:absolute;inset:0;z-index:1;pointer-events:none;background:
+  linear-gradient(180deg,rgba(12,10,9,.94) 0%,rgba(12,10,9,.86) 20%,rgba(14,12,10,.38) 40%,rgba(14,12,10,.30) 60%,rgba(11,9,8,.55) 78%,rgba(9,7,6,.92) 100%)}
+.cover-frame{position:absolute;inset:9mm;border:.28mm solid rgba(216,185,121,.55);z-index:5;pointer-events:none}
+.cover-content{position:absolute;left:18mm;right:18mm;top:20mm;z-index:6;text-align:left}
+.cover-kicker{font-family:"Cover Sans",Arial,sans-serif;font-weight:600;font-size:9.2pt;letter-spacing:.31em;text-transform:uppercase;color:#a8b83c;margin:0 0 4.5mm}
+.cover-kicker-rule{width:100%;height:3.2mm;margin:0 0 5.5mm;border-top:.55mm solid #b52d24;border-bottom:.22mm solid rgba(216,185,121,.42);position:relative}
+.cover-kicker-rule:after{content:"◆  ◆  ◆";position:absolute;left:0;top:-3.1mm;color:#c8482d;font-size:6pt;letter-spacing:.32em;background:rgba(15,12,10,.72);padding-right:3mm}
+.cover-brand{font-family:Impact,"Arial Narrow","Cover Sans",sans-serif;font-weight:900;font-size:78pt;line-height:.82;letter-spacing:.012em;margin:0;text-transform:uppercase;color:#f0dfbd;text-shadow:0 1.2mm 0 rgba(0,0,0,.28)}
+.cover-brand .accent{color:#c93428}
+.cover-slogan{font-family:Impact,"Arial Narrow","Cover Sans",sans-serif;font-weight:900;font-style:normal;font-size:27pt;line-height:.98;letter-spacing:.035em;text-transform:uppercase;color:#df8626;margin:12mm 0 0;max-width:92mm;text-shadow:0 .8mm 0 rgba(0,0,0,.35)}
+.cover-slogan small{display:block;margin-top:4mm;font-family:"Cover Sans",Arial,sans-serif;font-size:8.4pt;line-height:1.35;letter-spacing:.09em;text-transform:uppercase;color:#eadcc0;font-weight:600}
+.cover-panel{position:absolute;right:18mm;bottom:35mm;z-index:6;width:60mm;text-align:center;background:#dfc99b;color:#251a12;border:.45mm solid #9f7041;padding:7mm 6mm 6mm;box-shadow:0 3mm 12mm rgba(0,0,0,.5);transform:rotate(-.7deg)}
+.cover-panel:before,.cover-panel:after{content:"";position:absolute;left:3mm;right:3mm;height:.3mm;background:rgba(111,69,34,.34)}
+.cover-panel:before{top:3mm}.cover-panel:after{bottom:3mm}
+.cover-panel strong{display:block;font-family:Impact,"Arial Narrow","Cover Sans",sans-serif;font-weight:900;font-size:14pt;line-height:1.08;letter-spacing:.035em;text-transform:uppercase;color:#342116;margin-bottom:3mm}
+.cover-panel span{display:block;font-family:"Cover Sans",Arial,sans-serif;font-size:7.3pt;line-height:1.4;color:#5a402c;margin-bottom:4mm}
+.cover-panel-rule{width:12mm;height:0;border-top:.35mm solid rgba(111,69,34,.48);margin:0 auto 4mm}
+.cover-qr{width:23mm;padding:1.6mm;background:#f8f0df;margin:0 auto;border:.25mm solid rgba(74,45,25,.3)}
+.cover-qr img{display:block;width:100%;height:100%}
+.cover-qr-label{margin-top:2mm;font-family:"Cover Sans",Arial,sans-serif;font-size:6.2pt;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#5a402c}
+.cover-footer{position:absolute;left:20mm;right:20mm;bottom:14mm;z-index:6;padding-top:4.5mm;border-top:.25mm solid rgba(216,185,121,.42);display:flex;align-items:center;justify-content:space-between;font-family:"Cover Sans",Arial,sans-serif}
+.cover-footer-url{font-size:9pt;font-weight:500;letter-spacing:.05em;color:#f0e4c9}
+.cover-social{display:flex;gap:6mm;align-items:center}
+.cover-social span{display:flex;align-items:center;gap:2.2mm;font-size:8pt;font-weight:500;letter-spacing:.03em;color:#e7d2a8}
+.social-icon{width:5.4mm;height:5.4mm;border:.32mm solid rgba(216,185,121,.6);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#e7d2a8;font-family:"Cover Sans",Arial,sans-serif;font-weight:600;font-size:6.4pt}
 .menu-pages{page:menu;background:#11100e;color:#f3ead7}.menu-pages.drinks-start,.menu-pages.cocktails-start{break-before:page}
 .menu-pages:before{content:"";position:fixed;z-index:-5;inset:-7mm;border:.35mm solid rgba(232,213,174,.34);box-shadow:inset 0 0 0 .25mm rgba(176,43,31,.34);pointer-events:none}
 .menu-topline{display:flex;align-items:center;justify-content:space-between;gap:8mm;margin:0 0 5.5mm;padding:0 0 3.5mm;border-bottom:.35mm solid #a82c23;break-after:avoid}
@@ -53,18 +66,25 @@ body{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:8.4pt;line-
 <body>
 
 <section class="cover">
-  <div class="cover-inner">
-    <div class="cover-ornament"></div>
-    <h1 class="cover-brand">TACO<b>MEX</b></h1>
-    <div class="cover-tag">Cocina ✦ Bar ✦ Cocktailgarten</div>
-    <div class="cover-rule"></div>
-    <div class="cover-slogan">Sabor, Pasión<br>y Fiesta!</div>
-    {% if asset_data('cover_cactus.jpg') %}<img class="cover-cactus" src="{{ asset_data('cover_cactus.jpg') }}" alt="">{% endif %}
-    <div class="cover-card"><strong>Hausgemacht.<br>Frisch.<br>Authentisch.</strong><span>Mexikanische Küche, gute Drinks und ganz viel TacoMex-Gefühl.</span></div>
-    {% if asset_data('cover_food.jpg') %}<img class="cover-food" src="{{ asset_data('cover_food.jpg') }}" alt=""><div class="cover-food-overlay"></div>{% endif %}
-    {% if qr_data_uri %}<div class="cover-qr"><img src="{{ qr_data_uri }}" alt="QR-Code"><strong>Menü online</strong></div>{% endif %}
+  {% if asset_data('cover_food.jpg') %}<img class="cover-food" src="{{ asset_data('cover_food.jpg') }}" alt="">{% endif %}
+  <div class="cover-scrim"></div>
+  <div class="cover-frame"></div>
+  <div class="cover-content">
+    <p class="cover-kicker">Cocina · Bar · Cocktailgarten</p>
+    <div class="cover-kicker-rule"></div>
+    <h1 class="cover-brand">Taco<span class="accent">Mex</span></h1>
+    <p class="cover-slogan">Sabor, Pasión<br>y Fiesta!<small>Mexikanische Küche mit Herz</small></p>
   </div>
-  <div class="cover-footer"><span>{{ settings.website_url or 'https://www.tacomex.de' }}</span><span class="cover-social"><span class="social-icon">f</span><span>Facebook</span><span class="social-icon ig">◎</span><span>Instagram</span></span></div>
+  <div class="cover-panel">
+    <strong>Hausgemacht.<br>Frisch. Authentisch.</strong>
+    <span>Mexikanische Küche, gute Drinks und ganz viel TacoMex-Gefühl.</span>
+    <div class="cover-panel-rule"></div>
+    {% if qr_data_uri %}<div class="cover-qr"><img src="{{ qr_data_uri }}" alt="QR-Code"></div><div class="cover-qr-label">Menü online</div>{% endif %}
+  </div>
+  <div class="cover-footer">
+    <span class="cover-footer-url">{{ settings.website_url or 'https://www.tacomex.de' }}</span>
+    <span class="cover-social"><span><span class="social-icon">f</span>Facebook</span><span><span class="social-icon">◎</span>Instagram</span></span>
+  </div>
 </section>
 
 <section class="menu-pages food-menu">
