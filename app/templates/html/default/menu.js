@@ -23,6 +23,7 @@
   function normalizeItem(item) {
     return {
       itemId: String(item.itemId),
+      orderNumber: item.orderNumber ? String(item.orderNumber) : "",
       name: String(item.name || ""),
       variant: item.variant ? String(item.variant) : null,
       unitPriceCents: normalizeCents(item.unitPriceCents),
@@ -151,6 +152,7 @@
     slots.forEach((slot) => {
       const baseItem = {
         itemId: slot.dataset.itemId,
+        orderNumber: slot.dataset.orderNumber || "",
         name: slot.dataset.name,
         variant: null,
         unitPriceCents: normalizeCents(slot.dataset.priceCents),
@@ -159,6 +161,7 @@
       if (slot.dataset.secondPriceCents) {
         const variantItem = {
           itemId: slot.dataset.itemId,
+          orderNumber: slot.dataset.orderNumber || "",
           name: slot.dataset.name,
           variant: slot.dataset.secondPriceLabel || "Variante",
           unitPriceCents: normalizeCents(slot.dataset.secondPriceCents),
@@ -266,7 +269,7 @@
         row.innerHTML = `
           <div class="selection-item-main">
             <div>
-              <strong>${escapeHtml(item.quantity)} × ${escapeHtml(item.name)}</strong>
+              <strong>${escapeHtml(item.quantity)} × ${escapeHtml(item.orderNumber ? item.orderNumber + ". " + item.name : item.name)}</strong>
               ${item.variant ? `<span>${escapeHtml(item.variant)}</span>` : ""}
               <small>${formatMoney(item.unitPriceCents, currency)} je Stück</small>
             </div>
@@ -321,7 +324,7 @@
           const row = document.createElement("article");
           row.className = "large-item";
           row.innerHTML = `
-            <strong>${escapeHtml(item.quantity)} × ${escapeHtml(item.name)}</strong>
+            <strong>${escapeHtml(item.quantity)} × ${escapeHtml(item.orderNumber ? item.orderNumber + ". " + item.name : item.name)}</strong>
             ${item.variant ? `<span>${escapeHtml(item.variant)}</span>` : ""}
             ${item.note ? `<p>${escapeHtml(item.note)}</p>` : ""}
           `;

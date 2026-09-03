@@ -26,6 +26,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:#17120f;font-size:8.6pt;line-h
 .item{break-inside:avoid;margin:0 0 1.25mm;padding:0 0 .7mm;border-bottom:.18mm solid rgba(89,58,39,.12)}
 .item-main{display:grid;grid-template-columns:1fr auto;gap:2mm;align-items:baseline}
 .item-name{font-family:"Marker Felt","Segoe Print","Bradley Hand",cursive;font-size:9.2pt;font-weight:900;text-transform:uppercase;line-height:1.02}
+.item-number{display:inline-block;min-width:10mm}
 .item-price{font-family:"Marker Felt","Segoe Print","Bradley Hand",cursive;font-size:9pt;font-weight:900;white-space:nowrap}
 .item-desc{font-size:6.9pt;line-height:1.12;margin:.3mm 0 0 1.5mm}
 .variant{display:flex;justify-content:space-between;gap:3mm;margin:.35mm 0 0 1.5mm;font-size:6.8pt;font-weight:700}.variant strong{white-space:nowrap}
@@ -54,7 +55,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:#17120f;font-size:8.6pt;line-h
       {% if category.description %}<p class="category-desc">{{ category.description }}</p>{% endif %}
       {% for item in category.items %}
       <article class="item">
-        <div class="item-main"><span class="item-name">{{ item.name }}</span><span class="item-price">{{ format_price(item.price) }}</span></div>
+        <div class="item-main"><span class="item-name">{% if item.order_number %}<span class="item-number">{{ item.order_number }}.</span>{% endif %}{{ item.name }}</span><span class="item-price">{{ format_price(item.price) }}</span></div>
         {% if item.description %}<p class="item-desc">{{ item.description }}</p>{% endif %}
         {% if item.second_price %}<div class="variant"><span>{{ item.second_price_label or 'Weitere Größe' }}</span><strong>{{ format_price(item.second_price) }}</strong></div>{% endif %}
         {% if item.allergens or item.additives %}<div class="meta">{% if item.allergens %}Allergene: {{ item.allergens }}{% endif %}{% if item.additives %}{% if item.allergens %} · {% endif %}Zusatzstoffe: {{ item.additives }}{% endif %}</div>{% endif %}
@@ -73,7 +74,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:#17120f;font-size:8.6pt;line-h
   <div class="columns">
   {% for category in categories %}{% if category.type.value == 'food' and 'burger' in category.name|lower %}
     <section class="category"><h2>{{ category.name }}</h2>{% if category.description %}<p class="category-desc">{{ category.description }}</p>{% endif %}
-    {% for item in category.items %}<article class="item"><div class="item-main"><span class="item-name">{{ item.name }}</span>{% if item.description %}<span class="item-desc">{{ item.description }}</span>{% endif %}<span class="item-price">{{ format_price(item.price) }}</span></div>{% if item.second_price %}<div class="variant"><span>{{ item.second_price_label or 'Weitere Größe' }}</span><strong>{{ format_price(item.second_price) }}</strong></div>{% endif %}</article>{% endfor %}
+    {% for item in category.items %}<article class="item"><div class="item-main"><span class="item-name">{% if item.order_number %}<span class="item-number">{{ item.order_number }}.</span>{% endif %}{{ item.name }}</span>{% if item.description %}<span class="item-desc">{{ item.description }}</span>{% endif %}<span class="item-price">{{ format_price(item.price) }}</span></div>{% if item.second_price %}<div class="variant"><span>{{ item.second_price_label or 'Weitere Größe' }}</span><strong>{{ format_price(item.second_price) }}</strong></div>{% endif %}</article>{% endfor %}
     </section>
   {% endif %}{% endfor %}
   </div>
@@ -85,7 +86,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:#17120f;font-size:8.6pt;line-h
   <div class="columns">
   {% for category in categories %}{% if category.type.value == 'drinks' %}
     <section class="category"><h2>{{ category.name }}</h2>{% if category.description %}<p class="category-desc">{{ category.description }}</p>{% endif %}
-    {% for item in category.items %}<article class="item"><div class="item-main"><span class="item-name">{{ item.name }}</span><span class="item-price">{{ format_price(item.price) }}</span></div>{% if item.description %}<p class="item-desc">{{ item.description }}</p>{% endif %}{% if item.second_price %}<div class="variant"><span>{{ item.second_price_label or 'Weitere Größe' }}</span><strong>{{ format_price(item.second_price) }}</strong></div>{% endif %}</article>{% endfor %}
+    {% for item in category.items %}<article class="item"><div class="item-main"><span class="item-name">{% if item.order_number %}<span class="item-number">{{ item.order_number }}.</span>{% endif %}{{ item.name }}</span><span class="item-price">{{ format_price(item.price) }}</span></div>{% if item.description %}<p class="item-desc">{{ item.description }}</p>{% endif %}{% if item.second_price %}<div class="variant"><span>{{ item.second_price_label or 'Weitere Größe' }}</span><strong>{{ format_price(item.second_price) }}</strong></div>{% endif %}</article>{% endfor %}
     </section>
   {% endif %}{% endfor %}
   </div>
@@ -97,7 +98,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:#17120f;font-size:8.6pt;line-h
   <div class="columns">
   {% for category in cocktail_categories[:4] %}
     <section class="category"><h2>{{ category.name }}</h2>{% if category.description %}<p class="category-desc">{{ category.description }}</p>{% endif %}
-    {% for item in category.items %}<article class="item"><div class="item-main"><span class="item-name">{{ item.name }}</span><span class="item-price">{{ format_price(item.price) }}</span></div>{% if item.description %}<p class="item-desc">{{ item.description }}</p>{% endif %}{% if item.second_price %}<div class="variant"><span>{{ item.second_price_label or 'Weitere Größe' }}</span><strong>{{ format_price(item.second_price) }}</strong></div>{% endif %}</article>{% endfor %}
+    {% for item in category.items %}<article class="item"><div class="item-main"><span class="item-name">{% if item.order_number %}<span class="item-number">{{ item.order_number }}.</span>{% endif %}{{ item.name }}</span><span class="item-price">{{ format_price(item.price) }}</span></div>{% if item.description %}<p class="item-desc">{{ item.description }}</p>{% endif %}{% if item.second_price %}<div class="variant"><span>{{ item.second_price_label or 'Weitere Größe' }}</span><strong>{{ format_price(item.second_price) }}</strong></div>{% endif %}</article>{% endfor %}
     </section>
   {% endfor %}
   </div>
@@ -107,7 +108,7 @@ body{font-family:Arial,Helvetica,sans-serif;color:#17120f;font-size:8.6pt;line-h
   <div class="columns">
   {% for category in cocktail_categories[4:] %}
     <section class="category"><h2>{{ category.name }}</h2>{% if category.description %}<p class="category-desc">{{ category.description }}</p>{% endif %}
-    {% for item in category.items %}<article class="item"><div class="item-main"><span class="item-name">{{ item.name }}</span><span class="item-price">{{ format_price(item.price) }}</span></div>{% if item.description %}<p class="item-desc">{{ item.description }}</p>{% endif %}{% if item.second_price %}<div class="variant"><span>{{ item.second_price_label or 'Weitere Größe' }}</span><strong>{{ format_price(item.second_price) }}</strong></div>{% endif %}</article>{% endfor %}
+    {% for item in category.items %}<article class="item"><div class="item-main"><span class="item-name">{% if item.order_number %}<span class="item-number">{{ item.order_number }}.</span>{% endif %}{{ item.name }}</span><span class="item-price">{{ format_price(item.price) }}</span></div>{% if item.description %}<p class="item-desc">{{ item.description }}</p>{% endif %}{% if item.second_price %}<div class="variant"><span>{{ item.second_price_label or 'Weitere Größe' }}</span><strong>{{ format_price(item.second_price) }}</strong></div>{% endif %}</article>{% endfor %}
     </section>
   {% endfor %}
   </div>

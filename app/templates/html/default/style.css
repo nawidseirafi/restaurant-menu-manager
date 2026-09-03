@@ -285,6 +285,12 @@ h1, h2, h3 {
   line-height: 1.15;
 }
 
+.order-number {
+  display: inline-block;
+  min-width: 3.2em;
+  color: var(--marigold);
+}
+
 .item-main > strong,
 .second-price strong {
   white-space: nowrap;

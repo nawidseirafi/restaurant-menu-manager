@@ -12,6 +12,7 @@ def test_json_export_import(session, tmp_path: Path):
     JsonService().export_menu(session, target)
     assert target.exists()
     assert "Nachos con Queso" in target.read_text(encoding="utf-8")
+    assert '"order_number": 200' in target.read_text(encoding="utf-8")
 
     session_factory = create_session_factory(tmp_path / "imported.db")
     imported_session = session_factory()
@@ -22,6 +23,7 @@ def test_json_export_import(session, tmp_path: Path):
         exported_again = tmp_path / "menu_again.json"
         JsonService().export_menu(imported_session, exported_again)
         assert "Burrito Pollo" in exported_again.read_text(encoding="utf-8")
+        assert '"order_number": 200' in exported_again.read_text(encoding="utf-8")
     finally:
         imported_session.close()
 
@@ -32,6 +34,8 @@ def test_html_export(session, tmp_path: Path):
     html = output.read_text(encoding="utf-8")
     assert "TacoMex" in html
     assert "Nachos con Queso" in html
+    assert '<span class="order-number">200.</span>Nachos con Queso' in html
+    assert 'data-order-number="200"' in html
     assert "Meine Auswahl" in html
     assert "data-item-id=" in html
     assert (tmp_path / "html" / "assets" / "style.css").exists()

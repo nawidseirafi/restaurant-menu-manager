@@ -47,17 +47,18 @@ class PriceEditorDialog(QDialog):
         self.search_edit.setProperty("class", "searchField")
         self.search_edit.textChanged.connect(self._filter_rows)
 
-        self.table = QTableWidget(0, 4)
-        self.table.setHorizontalHeaderLabels(["Gericht", "Kategorie", "Bisheriger Preis", "Neuer Preis"])
+        self.table = QTableWidget(0, 5)
+        self.table.setHorizontalHeaderLabels(["Nr.", "Gericht", "Kategorie", "Bisheriger Preis", "Neuer Preis"])
         self.table.setAlternatingRowColors(False)
         self.table.verticalHeader().setVisible(False)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.table.setShowGrid(False)
-        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
         self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
         self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeToContents)
         self.table.itemChanged.connect(self._on_item_changed)
 
         self.status_label = QLabel("Änderungen werden automatisch gespeichert")
@@ -104,6 +105,12 @@ class PriceEditorDialog(QDialog):
         items = self.repo.list_items(active_only=False)
         self.table.setRowCount(len(items))
         for row, item in enumerate(items):
+            order_number = QTableWidgetItem(str(item.order_number) if item.order_number is not None else "")
+            order_number.setData(Qt.UserRole, item.id)
+            order_number.setData(Qt.UserRole + 1, self._search_text(item))
+            order_number.setFlags(order_number.flags() & ~Qt.ItemIsEditable)
+            order_number.setTextAlignment(Qt.AlignCenter)
+
             name = QTableWidgetItem(item.name)
             name.setData(Qt.UserRole, item.id)
             name.setData(Qt.UserRole + 1, self._search_text(item))
@@ -120,10 +127,11 @@ class PriceEditorDialog(QDialog):
             new_price.setData(Qt.UserRole, item.id)
             new_price.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
-            self.table.setItem(row, 0, name)
-            self.table.setItem(row, 1, category)
-            self.table.setItem(row, 2, old_price)
-            self.table.setItem(row, 3, new_price)
+            self.table.setItem(row, 0, order_number)
+            self.table.setItem(row, 1, name)
+            self.table.setItem(row, 2, category)
+            self.table.setItem(row, 3, old_price)
+            self.table.setItem(row, 4, new_price)
             self.table.setRowHeight(row, 42)
         self._loading = False
         self._update_hit_count()
@@ -144,7 +152,7 @@ class PriceEditorDialog(QDialog):
         return value
 
     def _on_item_changed(self, item: QTableWidgetItem) -> None:
-        if self._loading or item.column() != 3:
+        if self._loading or item.column() != 4:
             return
         try:
             value = self._parse_price(item.text())
@@ -189,6 +197,7 @@ class PriceEditorDialog(QDialog):
     def _search_text(self, item) -> str:
         return " ".join([
             item.name or "", item.description or "", item.category.name if item.category else "",
+            str(item.order_number) if item.order_number is not None else "",
             item.allergens or "", item.additives or "", item.notes or "",
         ]).casefold()
 

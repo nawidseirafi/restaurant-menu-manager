@@ -41,6 +41,7 @@ def seed_demo_data(session: Session) -> None:
         return
 
     session.add(Settings(id=1))
+    order_number = 200
     for category_index, (name, category_type, items) in enumerate(DEMO_MENU, start=1):
         category = Category(
             name=name,
@@ -52,9 +53,14 @@ def seed_demo_data(session: Session) -> None:
         session.add(category)
         session.flush()
         for item_index, (item_name, description, price, vegetarian, vegan, spicy) in enumerate(items, start=1):
+            item_order_number = None
+            if category_type not in {CategoryType.drinks, CategoryType.cocktails}:
+                item_order_number = order_number
+                order_number += 1
             session.add(
                 MenuItem(
                     category_id=category.id,
+                    order_number=item_order_number,
                     name=item_name,
                     description=description,
                     price=Decimal(price),

@@ -13,6 +13,8 @@ def test_pdf_template_renders_full_active_menu(session):
         assert category.name in html
         for item in repo.list_items(category.id, active_only=True):
             assert item.name in html
+            if item.order_number is not None:
+                assert f"{item.order_number}." in html
             assert f"{item.price:.2f}".replace(".", ",") in html
 
 

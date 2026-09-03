@@ -302,8 +302,8 @@ class MainWindow(QMainWindow):
         self.item_search_edit.setProperty("class", "searchField")
         self.item_search_edit.textChanged.connect(self.on_search_changed)
         layout.addWidget(self._items_header())
-        self.items_table = ReorderTableWidget(0, 6)
-        self.items_table.setHorizontalHeaderLabels(["Name", "Preis", "Aktiv", "Veg.", "Vegan", "Scharf"])
+        self.items_table = ReorderTableWidget(0, 7)
+        self.items_table.setHorizontalHeaderLabels(["Nr.", "Name", "Preis", "Aktiv", "Veg.", "Vegan", "Scharf"])
         self.items_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.items_table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.items_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
@@ -315,8 +315,9 @@ class MainWindow(QMainWindow):
         self.items_table.verticalHeader().setVisible(False)
         self.items_table.horizontalHeader().setStretchLastSection(False)
         self.items_table.horizontalHeader().setDefaultAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.items_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-        for column in range(1, 6):
+        self.items_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.items_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        for column in range(2, 7):
             self.items_table.horizontalHeader().setSectionResizeMode(column, QHeaderView.ResizeToContents)
         self.items_table.itemSelectionChanged.connect(self.on_item_selection_changed)
         self.items_table.doubleClicked.connect(lambda *_: self.name_edit.setFocus())
@@ -332,6 +333,10 @@ class MainWindow(QMainWindow):
         layout.setSpacing(14)
         layout.addWidget(self._panel_title("GERICHT BEARBEITEN"))
 
+        self.order_number_spin = QSpinBox()
+        self.order_number_spin.setRange(0, 9999)
+        self.order_number_spin.setSpecialValueText("—")
+        self.order_number_spin.setAlignment(Qt.AlignCenter)
         self.name_edit = QLineEdit()
         self.description_edit = QTextEdit()
         self.description_edit.setFixedHeight(78)
@@ -396,6 +401,7 @@ class MainWindow(QMainWindow):
             layout.addWidget(label)
             layout.addWidget(field)
 
+        add_field("Bestellnummer", self.order_number_spin)
         add_field("Name", self.name_edit, True)
         add_field("Beschreibung", self.description_edit)
 
@@ -435,7 +441,7 @@ class MainWindow(QMainWindow):
         layout.addStretch(1)
 
         for widget in [
-            self.name_edit, self.description_edit, self.price_spin, self.second_price_spin,
+            self.order_number_spin, self.name_edit, self.description_edit, self.price_spin, self.second_price_spin,
             self.second_price_label_edit, self.category_combo, self.active_check,
             self.vegetarian_check, self.vegan_check, self.spicy_spin, self.allergens_edit,
             self.additives_edit, self.image_path_edit, self.notes_edit,
@@ -595,12 +601,13 @@ class MainWindow(QMainWindow):
             return
         self._loading = True
         self.items_table.setRowCount(0)
-        self.items_table.setColumnCount(6)
-        self.items_table.setHorizontalHeaderLabels(["Name", "Preis", "Aktiv", "Veg.", "Vegan", "Scharf"])
+        self.items_table.setColumnCount(7)
+        self.items_table.setHorizontalHeaderLabels(["Nr.", "Name", "Preis", "Aktiv", "Veg.", "Vegan", "Scharf"])
         self.items_table.setDragEnabled(True)
         self.items_table.setDragDropMode(QAbstractItemView.InternalMove)
-        self.items_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-        for column in range(1, 6):
+        self.items_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.items_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        for column in range(2, 7):
             self.items_table.horizontalHeader().setSectionResizeMode(column, QHeaderView.ResizeToContents)
         category = self.repo.get_category(self.current_category_id) if self.current_category_id else None
         self.items_title.setText(f"GERICHTE - {category.name.upper()}" if category else "GERICHTE")
@@ -613,6 +620,7 @@ class MainWindow(QMainWindow):
         self.items_table.setRowCount(len(items))
         for row, item in enumerate(items):
             values = [
+                str(item.order_number) if item.order_number is not None else "",
                 f"{item.sort_order}.  {item.name}",
                 f"{item.price:.2f} EUR".replace(".", ","),
                 "Ja" if item.active else "Nein",
@@ -620,7 +628,7 @@ class MainWindow(QMainWindow):
                 "Ja" if item.vegan else "",
                 str(item.spicy_level) if item.spicy_level else "",
             ]
-            self._set_item_row(row, item, values, center_columns={1, 2, 3, 4, 5})
+            self._set_item_row(row, item, values, center_columns={0, 2, 3, 4, 5, 6})
             self.items_table.setRowHeight(row, 42)
         self._loading = False
 
@@ -639,24 +647,26 @@ class MainWindow(QMainWindow):
         query = self._search_query()
         self.items_title.setText("GERICHTE - SUCHE")
         self.items_table.setRowCount(0)
-        self.items_table.setColumnCount(3)
-        self.items_table.setHorizontalHeaderLabels(["Name", "Kategorie", "Preis"])
+        self.items_table.setColumnCount(4)
+        self.items_table.setHorizontalHeaderLabels(["Nr.", "Name", "Kategorie", "Preis"])
         self.items_table.setDragEnabled(False)
         self.items_table.setDragDropMode(QAbstractItemView.NoDragDrop)
-        self.items_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-        self.items_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        self.items_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.items_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
         self.items_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        self.items_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)
 
         results = self._search_items(query)
         self.items_table.setRowCount(len(results))
         for row, item in enumerate(results):
             category_name = item.category.name if item.category else ""
             values = [
+                str(item.order_number) if item.order_number is not None else "",
                 item.name,
                 category_name,
                 f"{item.price:.2f} EUR".replace(".", ","),
             ]
-            self._set_item_row(row, item, values, center_columns={2})
+            self._set_item_row(row, item, values, center_columns={0, 3})
             self.items_table.setRowHeight(row, 42)
         self._loading = False
 
@@ -716,6 +726,7 @@ class MainWindow(QMainWindow):
 
     def _load_item(self, item: MenuItem) -> None:
         self._loading = True
+        self.order_number_spin.setValue(item.order_number or 0)
         self.name_edit.setText(item.name)
         self.description_edit.setPlainText(item.description or "")
         self.price_spin.setValue(float(item.price))
@@ -740,6 +751,7 @@ class MainWindow(QMainWindow):
             widget.clear()
         self.description_edit.clear()
         self.notes_edit.clear()
+        self.order_number_spin.setValue(0)
         self.price_spin.setValue(0)
         self.second_price_spin.setValue(0)
         self.active_check.setChecked(False)
@@ -822,8 +834,13 @@ class MainWindow(QMainWindow):
             return
         if not self._autosave_if_dirty():
             return
+        category = self.repo.get_category(self.current_category_id)
+        order_number = None
+        if category and category.type not in {CategoryType.drinks, CategoryType.cocktails}:
+            order_number = self.repo.next_order_number()
         item = MenuItem(
             category_id=self.current_category_id,
+            order_number=order_number,
             name="Neues Gericht",
             description="",
             price=0,
@@ -1006,6 +1023,8 @@ class MainWindow(QMainWindow):
         self.image_path_edit.setText(path)
 
     def _apply_editor_to_item(self, item: MenuItem) -> None:
+        order_number = self.order_number_spin.value()
+        item.order_number = order_number if order_number > 0 else None
         item.name = self.name_edit.text().strip()
         item.description = self.description_edit.toPlainText().strip()
         item.price = self.price_spin.value()
@@ -1034,6 +1053,7 @@ class MainWindow(QMainWindow):
                 searchable = " ".join(
                     [
                         item.name or "",
+                        str(item.order_number) if item.order_number is not None else "",
                         item.description or "",
                         category_text,
                         item.allergens or "",
@@ -1150,12 +1170,14 @@ class MainWindow(QMainWindow):
                 if self._search_query():
                     category = self.repo.get_category(item.category_id)
                     values = [
+                        str(item.order_number) if item.order_number is not None else "",
                         item.name,
                         category.name if category else "",
                         f"{float(item.price):.2f} EUR".replace(".", ","),
                     ]
                 else:
                     values = [
+                        str(item.order_number) if item.order_number is not None else "",
                         f"{item.sort_order}.  {item.name}",
                         f"{float(item.price):.2f} EUR".replace(".", ","),
                         "Ja" if item.active else "Nein",

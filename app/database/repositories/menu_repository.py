@@ -59,8 +59,10 @@ class MenuRepository:
         item = self.get_item(item_id)
         if not item:
             raise ValidationError("Gericht wurde nicht gefunden.")
+        order_number = self.next_order_number() if item.order_number is not None else None
         clone = MenuItem(
             category_id=item.category_id,
+            order_number=order_number,
             name=f"{item.name} Kopie",
             description=item.description,
             price=item.price,
@@ -93,6 +95,14 @@ class MenuRepository:
             raise ValidationError("Gericht wurde nicht gefunden.")
         item.price = price
         self.session.commit()
+
+    def next_order_number(self) -> int:
+        existing = [
+            item.order_number
+            for item in self.list_items(active_only=False)
+            if item.order_number is not None
+        ]
+        return (max(existing) + 1) if existing else 200
 
     def reorder_category(self, category_id: int, direction: int) -> None:
         categories = self.list_categories()
@@ -169,6 +179,13 @@ class MenuRepository:
     def _validate_item(self, item: MenuItem) -> None:
         if not item.name.strip():
             raise ValidationError("Gericht benoetigt einen Namen.")
+        if item.order_number is not None:
+            try:
+                item.order_number = int(item.order_number)
+            except (TypeError, ValueError):
+                raise ValidationError("Bestellnummer muss eine Zahl sein.") from None
+            if item.order_number < 0:
+                raise ValidationError("Bestellnummer darf nicht negativ sein.")
         if not item.category_id or not self.get_category(item.category_id):
             raise ValidationError("Bitte eine gueltige Kategorie auswaehlen.")
         try:

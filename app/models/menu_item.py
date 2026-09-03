@@ -13,6 +13,7 @@ class MenuItem(Base):
     category_id: Mapped[int] = mapped_column(
         ForeignKey("categories.id", ondelete="CASCADE"), nullable=False, index=True
     )
+    order_number: Mapped[int | None] = mapped_column(Integer, index=True)
     name: Mapped[str] = mapped_column(String(160), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)

@@ -26,6 +26,7 @@ def test_create_menu_item(session):
     item = repo.save_item(
         MenuItem(
             category_id=category.id,
+            order_number=999,
             name="Taco Test",
             description="Testbeschreibung",
             price=Decimal("9.50"),
@@ -35,6 +36,7 @@ def test_create_menu_item(session):
     )
     assert item.id is not None
     assert repo.get_item(item.id).price == Decimal("9.50")
+    assert repo.get_item(item.id).order_number == 999
 
 
 def test_change_price(session):
@@ -42,6 +44,13 @@ def test_change_price(session):
     item = repo.list_items()[0]
     repo.update_item_price(item.id, Decimal("12.30"))
     assert repo.get_item(item.id).price == Decimal("12.30")
+
+
+def test_demo_cocktails_do_not_require_order_numbers(session):
+    repo = MenuRepository(session)
+    cocktail_category = next(category for category in repo.list_categories() if category.type == CategoryType.cocktails)
+    cocktail = repo.list_items(cocktail_category.id)[0]
+    assert cocktail.order_number is None
 
 
 def test_settings_menu_url_defaults_and_migrates(session):

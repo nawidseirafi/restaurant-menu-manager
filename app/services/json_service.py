@@ -39,6 +39,7 @@ class JsonService:
                     "type": category.type.value,
                     "items": [
                         {
+                            "order_number": item.order_number,
                             "name": item.name,
                             "description": item.description,
                             "price": str(item.price),
@@ -86,6 +87,7 @@ class JsonService:
                 session.add(
                     MenuItem(
                         category_id=category.id,
+                        order_number=item_data.get("order_number"),
                         name=item_data["name"],
                         description=item_data.get("description"),
                         price=Decimal(item_data["price"]),
