@@ -106,3 +106,9 @@ Traceback (most recent call last):
 jinja2.exceptions.TemplateSyntaxError: Encountered unknown tag 'IF'. Jinja was looking for the following tags: 'endfor' or 'else'. The innermost block that needs to be closed is 'for'.
 2026-09-03 16:28:58,134 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/menu.pdf
 2026-09-03 16:34:48,994 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/menu.pdf
+2026-09-03 16:40:01,002 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/menu.pdf
+2026-09-03 16:42:55,772 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/menu.pdf
+2026-09-03 16:45:41,481 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/menu.pdf
+2026-09-03 16:50:27,923 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/menu.pdf
+2026-09-03 16:54:40,492 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/menu.pdf
+2026-09-03 16:56:04,590 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/menu2.pdf
