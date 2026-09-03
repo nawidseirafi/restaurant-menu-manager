@@ -32,25 +32,30 @@ def test_pdf_template_renders_second_price(session):
 def test_pdf_template_uses_branded_cover_and_section_page_breaks(session):
     html = PdfExporter().render_html(session)
 
-    assert "page-break-after: always" not in html
-    assert "page-break-before" not in html
-    assert ".menu-pages.drinks-start,.menu-pages.cocktails-start{break-before:page}" in html
-    assert 'class="menu-pages cocktails-start"' in html
-    assert '<div class="section-label">Essen</div>' in html
-    assert '<div class="section-label">Getränke</div>' in html
-    assert '<div class="section-label">Cocktails</div>' in html
-    assert 'class="menu-pages drinks-start"' in html
-    assert "break-after: always" not in html
-    assert "height: 100vh" not in html
     assert 'class="cover"' in html
+    assert 'class="menu-page food-page start-page"' in html
+    assert 'class="menu-page burger-page start-page"' in html
+    assert 'class="menu-page drinks-page start-page"' in html
+    assert 'class="menu-page cocktails-page cocktails-page-one start-page"' in html
+    assert 'class="menu-page cocktails-page cocktails-page-two start-page"' in html
+    assert 'Holz-Hintergrund.png' not in html  # asset is embedded as a data URI
+    assert 'Cocktail-1.png' not in html  # asset is embedded as a data URI
+    assert 'Cocktail-2.png' not in html  # asset is embedded as a data URI
+    assert 'original_wood.jpg' not in html
+    assert 'original_cover.png' not in html  # asset is embedded as a data URI
+    assert 'data:image/png;base64,' in html
+    assert 'data:image/jpeg;base64,' not in html
+    assert 'class="photo' not in html
+    assert "TacoMex Speisen und Getränke" in html
+    assert "cover.png" not in html
+    assert "columns:2" not in html
+    assert 'cover-qr' not in html
+    assert '<h1 class="page-title">Getränke</h1>' in html
+    assert '<h1 class="page-title">Cocktails</h1>' in html
+    assert 'break-before:page' in html
+    assert 'page-break-before' not in html
+    assert 'height: 100vh' not in html
     assert 'class="outro"' not in html
-    assert "qr_data_uri" not in html  # Jinja value must be rendered, not leaked
-    assert "data:image/png;base64," in html
-    assert "Facebook" in html
-    assert "Instagram" in html
-    assert 'class="cover-qr"' in html
-    assert 'class="menu-photo"' in html
-
 
 def test_pdf_template_handles_long_descriptions(session):
     repo = MenuRepository(session)

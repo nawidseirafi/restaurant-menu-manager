@@ -5,152 +5,113 @@
 <title>{{ settings.restaurant_name }} Speisekarte</title>
 <style>
 @page cover { size:A4 portrait; margin:0; }
-@page menu { size:A4 portrait; margin:11mm 11mm 12mm; background:#11100e; }
-@page outro { size:A4 portrait; margin:0; }
-@font-face{font-family:"Cover Serif";font-weight:700;font-style:normal;src:url("{{ asset_data('fonts/playfair-700.woff2') }}") format("woff2")}
-@font-face{font-family:"Cover Serif";font-weight:500;font-style:italic;src:url("{{ asset_data('fonts/playfair-500i.woff2') }}") format("woff2")}
-@font-face{font-family:"Cover Sans";font-weight:400;font-style:normal;src:url("{{ asset_data('fonts/jost-400.woff2') }}") format("woff2")}
-@font-face{font-family:"Cover Sans";font-weight:500;font-style:normal;src:url("{{ asset_data('fonts/jost-500.woff2') }}") format("woff2")}
-@font-face{font-family:"Cover Sans";font-weight:600;font-style:normal;src:url("{{ asset_data('fonts/jost-600.woff2') }}") format("woff2")}
+@page wood { size:A4 portrait; margin:0; background:#dcc6ad url("{{ asset_data('Holz-Hintergrund.png') }}") center/cover no-repeat; }
+@page cocktail-one { size:A4 portrait; margin:0; background:#dcc6ad url("{{ asset_data('Cocktail-1.png') }}") center/cover no-repeat; }
+@page cocktail-two { size:A4 portrait; margin:0; background:#dcc6ad url("{{ asset_data('Cocktail-2.png') }}") center/cover no-repeat; }
 *{box-sizing:border-box}
-html,body{margin:0;padding:0;background:#11100e;color:#f3ead7;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-body{font-family:"Avenir Next","Segoe UI",Arial,sans-serif;font-size:8.4pt;line-height:1.22}
-
-/* ---------- COVER ---------- */
-.cover{page:cover;width:210mm;height:297mm;position:relative;overflow:hidden;background:#100e0c;color:#f4ead9}
-.cover-art{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;z-index:0}
-.cover-qr{
-  position:absolute;
-  z-index:8;
-  left:78%;
-  top:72.25%;
-  width:10.15%;
-  aspect-ratio:1/1;
-  background:#f8f3e8;
-  padding:1.05mm;
-  border:.22mm solid rgba(76,48,28,.35);
-  box-shadow:0 .45mm 1.3mm rgba(0,0,0,.18);
-  transform:rotate(-2deg);
-}
-.cover-qr img{display:block;width:100%;height:100%}
-.cover-accessibility{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
-.menu-pages{page:menu;background:#11100e;color:#f3ead7}.menu-pages.drinks-start,.menu-pages.cocktails-start{break-before:page}
-.menu-pages:before{content:"";position:fixed;z-index:-5;inset:-7mm;border:.35mm solid rgba(232,213,174,.34);box-shadow:inset 0 0 0 .25mm rgba(176,43,31,.34);pointer-events:none}
-.menu-topline{display:flex;align-items:center;justify-content:space-between;gap:8mm;margin:0 0 5.5mm;padding:0 0 3.5mm;border-bottom:.35mm solid #a82c23;break-after:avoid}
-.brand{font-family:Impact,"Arial Narrow",sans-serif;font-size:24pt;font-weight:900;letter-spacing:.025em;line-height:.86;color:#eadbbd}.brand b{color:#c93226}.tagline{margin-top:1.6mm;color:#9aad38;font-size:8.2pt;font-weight:900;letter-spacing:.14em;text-transform:uppercase}.web{color:#d6b35c;font-weight:800;font-size:8pt;text-align:right}.web small{display:block;color:#8e8980;font-weight:600;margin-top:.7mm}
-.menu-flow{columns:2;column-gap:9mm;column-rule:.2mm solid rgba(222,197,145,.12);column-fill:auto}
-.section-label{break-inside:avoid;break-after:avoid;margin:1mm 0 4mm;padding:2.4mm 3mm 2.2mm;background:#3a1c12;border-left:1.2mm solid #c93226;border-top:.2mm solid rgba(222,197,145,.24);border-bottom:.2mm solid rgba(222,197,145,.24);color:#e8d4ae;font-family:Impact,"Arial Narrow",sans-serif;font-size:13.5pt;letter-spacing:.07em;text-transform:uppercase}
-.category{margin:0 0 5.2mm;break-inside:auto}.category-heading{break-after:avoid;margin:0 0 1.6mm;padding:0 0 1.5mm;border-bottom:.25mm dotted rgba(213,172,78,.55)}
-.category h2{margin:0;color:#a6b83d;font-family:Impact,"Arial Narrow",sans-serif;font-size:16.2pt;line-height:1;letter-spacing:.035em;text-transform:uppercase;text-shadow:0 .2mm 0 rgba(0,0,0,.4)}
-.category[data-accent="1"] h2{color:#df8626}.category[data-accent="2"] h2{color:#d64262}.category[data-accent="3"] h2{color:#42a6a5}.category-description{margin:.9mm 0 0;color:#aaa397;font-size:7.3pt;line-height:1.2}
-.menu-item{break-inside:avoid;padding:1.35mm 0 1.25mm;border-bottom:.18mm solid rgba(239,226,200,.12)}.item-line{display:flex;align-items:baseline;gap:1.6mm}.item-name{min-width:0;color:#f3ead7;font-weight:800;font-size:9.1pt;line-height:1.08}.leader{flex:1 1 auto;min-width:3mm;border-bottom:.2mm dotted rgba(215,168,74,.38);transform:translateY(-.7mm)}.price{flex:0 0 auto;white-space:nowrap;color:#f1dfbd;font-weight:900;font-size:8.9pt}.description{margin:.55mm 0 0;color:#a9a39a;font-size:7.15pt;line-height:1.22}.variant{display:flex;justify-content:space-between;gap:2mm;margin-top:.55mm;color:#c4bcae;font-size:7.1pt;font-weight:700}.variant strong{color:#e3bb62;white-space:nowrap}.meta{margin-top:.55mm;color:#d3a642;font-size:6.4pt;font-weight:900;letter-spacing:.035em;text-transform:uppercase}.dense{margin-bottom:4.1mm}.dense .menu-item{padding:.9mm 0}.dense .item-name,.dense .price{font-size:8.15pt}.dense .description,.dense .variant{font-size:6.6pt}.dense .category-heading{margin-bottom:1.15mm}.menu-photo{break-inside:avoid;margin:3mm 0 5mm;height:48mm;overflow:hidden;border:.25mm solid rgba(231,210,170,.26);box-shadow:0 2mm 7mm rgba(0,0,0,.42);position:relative}.menu-photo img{width:100%;height:100%;object-fit:cover;display:block;filter:saturate(.95) contrast(1.04)}.menu-photo:after{content:"";position:absolute;inset:0;box-shadow:inset 0 0 8mm rgba(0,0,0,.2);pointer-events:none}.menu-photo.tall{height:57mm}.end-mark{column-span:all;break-inside:avoid;margin-top:4mm;padding:3mm 0 0;border-top:.35mm solid #a82c23;text-align:center;color:#d6b35c;font-family:Impact,"Arial Narrow",sans-serif;font-size:10pt;letter-spacing:.13em;text-transform:uppercase}
-
-/* ---------- OUTRO / QR ---------- */
-.outro{page:outro;width:210mm;height:297mm;position:relative;overflow:hidden;background:#11100e;color:#f3ead7;padding:12mm 12mm 0}
-.outro:before{content:"";position:absolute;inset:8mm;border:.35mm solid rgba(232,213,174,.38);box-shadow:inset 0 0 0 .22mm rgba(176,43,31,.42);pointer-events:none}
-.outro-head{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:flex-end;border-bottom:.55mm solid #a82c23;padding:3mm 3mm 5mm;margin:0 3mm 8mm}.outro-title{font-family:Impact,"Arial Narrow",sans-serif;font-size:29pt;letter-spacing:.05em;text-transform:uppercase;color:#e5d5b4}.outro-title b{color:#c93226}.outro-kicker{color:#9eaf39;font-weight:900;letter-spacing:.12em;text-transform:uppercase;font-size:8.5pt;text-align:right}
-.food-strip{position:relative;z-index:2;display:grid;grid-template-columns:1.05fr 1fr 1fr;gap:4mm;margin:0 3mm 9mm;height:78mm}.food-strip img{width:100%;height:100%;object-fit:cover;border:.25mm solid rgba(231,210,170,.28);box-shadow:0 2mm 8mm rgba(0,0,0,.45)}
-.cta{position:relative;z-index:2;display:grid;grid-template-columns:1fr 58mm;gap:9mm;margin:0 9mm;align-items:center}.cta-copy h2{font-family:Impact,"Arial Narrow",sans-serif;margin:0 0 4mm;color:#df8626;font-size:24pt;line-height:1.02;letter-spacing:.04em;text-transform:uppercase}.cta-copy p{margin:0 0 4mm;color:#bdb4a5;font-size:9pt;line-height:1.45}.cta-url{color:#e6c36c;font-weight:900;font-size:10.5pt;margin-top:5mm}.qr-card{background:#e8d7ae;color:#1b1712;padding:5mm;text-align:center;transform:rotate(.5deg);box-shadow:0 3mm 12mm rgba(0,0,0,.5)}.qr-card img{display:block;width:46mm;height:46mm;margin:0 auto 3mm;background:white}.qr-card strong{font-family:Impact,"Arial Narrow",sans-serif;font-size:11pt;letter-spacing:.05em;text-transform:uppercase}.outro-social{position:absolute;z-index:3;left:12mm;right:12mm;bottom:0;height:22mm;background:#a92c23;display:flex;align-items:center;justify-content:center;gap:9mm;color:#ead9b5}.outro-social .social-icon{width:9mm;height:9mm;font-size:9pt}.outro-social .social-icon.ig{font-size:13pt}.outro-social strong{font-size:9.5pt;letter-spacing:.04em}.outro-cactus{position:absolute;z-index:2;left:17mm;bottom:22mm;width:31mm;height:34mm;object-fit:cover;border-radius:2mm;box-shadow:0 2mm 8mm rgba(0,0,0,.5)}
+html,body{margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{font-family:Arial,Helvetica,sans-serif;color:#17120f;font-size:8.6pt;line-height:1.16}
+.cover{page:cover;width:210mm;height:297mm;overflow:hidden;position:relative;background:#dcc6ad}
+.cover img{width:100%;height:100%;object-fit:cover;display:block}
+.menu-page{page:wood;position:relative;background:#dcc6ad url("{{ asset_data('Holz-Hintergrund.png') }}") center/cover no-repeat;color:#17120f;width:210mm;min-height:297mm;padding:12mm 11mm 10mm;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.menu-page:before{content:"";position:absolute;inset:0;background:rgba(245,229,208,.18);z-index:0;pointer-events:none}
+.menu-page>*{position:relative;z-index:1}
+.start-page{break-before:page}
+.page-title{text-align:center;font-family:"Marker Felt","Segoe Print","Bradley Hand",cursive;font-size:19pt;font-weight:900;line-height:1;margin:0 0 3mm;text-transform:uppercase;letter-spacing:.02em}
+.page-note{text-align:center;font-family:"Marker Felt","Segoe Print",cursive;font-size:8pt;font-weight:700;margin:-1mm 0 3.5mm}
+.columns{max-width:186mm;margin:0 auto}
+.category{break-inside:avoid;margin:0 0 4.4mm}
+.category h2{font-family:"Marker Felt","Segoe Print","Bradley Hand",cursive;font-size:20pt;line-height:1.02;text-align:center;text-transform:uppercase;margin:0 0 1.5mm;font-weight:900;letter-spacing:.02em}
+.category-desc{font-family:"Marker Felt","Segoe Print","Bradley Hand",cursive;text-align:center;font-size:7.2pt;font-weight:700;margin:0 0 1.4mm;line-height:1.1}
+.item{break-inside:avoid;margin:0 0 1.25mm;padding:0 0 .7mm;border-bottom:.18mm solid rgba(89,58,39,.12)}
+.item-main{display:grid;grid-template-columns:1fr auto;gap:2mm;align-items:baseline}
+.item-name{font-family:"Marker Felt","Segoe Print","Bradley Hand",cursive;font-size:9.2pt;font-weight:900;text-transform:uppercase;line-height:1.02}
+.item-price{font-family:"Marker Felt","Segoe Print","Bradley Hand",cursive;font-size:9pt;font-weight:900;white-space:nowrap}
+.item-desc{font-size:6.9pt;line-height:1.12;margin:.3mm 0 0 1.5mm}
+.variant{display:flex;justify-content:space-between;gap:3mm;margin:.35mm 0 0 1.5mm;font-size:6.8pt;font-weight:700}.variant strong{white-space:nowrap}
+.meta{font-size:5.9pt;margin:.35mm 0 0 1.5mm;font-weight:700;color:#4d3d32}
+.burger-page .category{max-width:180mm;margin-left:auto;margin-right:auto}.burger-page .category h2{font-size:18pt}.burger-page .item{margin-bottom:1.8mm}.burger-page .item-main{grid-template-columns:56mm 1fr auto}.burger-page .item-name{font-size:10.5pt}.burger-page .item-desc{grid-column:2;margin:0;font-size:7.4pt}.burger-page .item-price{grid-column:3;grid-row:1}
+.drinks-page .category h2,.cocktails-page .category h2{text-align:left;font-size:14pt}.drinks-page .item,.cocktails-page .item{margin-bottom:.8mm}.drinks-page .item-name,.drinks-page .item-price,.cocktails-page .item-name,.cocktails-page .item-price{font-size:8.3pt}.drinks-page .item-desc,.cocktails-page .item-desc{font-size:6.3pt}
+.cocktails-page{page:cocktail-one;background:#dcc6ad url("{{ asset_data('Cocktail-1.png') }}") center/cover no-repeat}
+.cocktails-page-two{page:cocktail-two;background:#dcc6ad url("{{ asset_data('Cocktail-2.png') }}") center/cover no-repeat}
+.cocktails-page:before{background:transparent}
+.cocktails-page .category:nth-child(4n+1) h2{color:#d46c31}.cocktails-page .category:nth-child(4n+2) h2{color:#668f31}.cocktails-page .category:nth-child(4n+3) h2{color:#d98924}.cocktails-page .category:nth-child(4n) h2{color:#6b9238}
+.footer-note{break-inside:avoid;margin-top:5mm;text-align:center;font-family:"Marker Felt","Segoe Print",cursive;font-size:8pt;font-weight:800}
 </style>
 </head>
 <body>
 
-<section class="cover">
-  {% if asset_data('cover.png') %}<img class="cover-art" src="{{ asset_data('cover.png') }}" alt="TacoMex Cover">{% endif %}
-  {% if qr_data_uri %}<div class="cover-qr"><img src="{{ qr_data_uri }}" alt="QR-Code zum Online-Menü"></div>{% endif %}
-  <span class="cover-accessibility">Facebook Instagram {{ settings.website_url or 'https://www.tacomex.de' }}</span>
-</section>
+<section class="cover">{% if asset_data('original_cover.png') %}<img src="{{ asset_data('original_cover.png') }}" alt="TacoMex Speisen und Getränke">{% endif %}</section>
 
-<section class="menu-pages food-menu">
-<header class="menu-topline">
-  <div><div class="brand">TACO<b>MEX</b></div><div class="tagline">Cocina · Bar · Cocktailgarten</div></div>
-</header>
-<main class="menu-flow">
-<div class="section-label">Essen</div>
-{% set ns = namespace(accent=0) %}
-{% for category in categories %}
-  {% if category.type.value not in ['drinks','cocktails'] %}
-    {% set ns.accent = (ns.accent + 1) % 4 %}
-    <section class="category" data-accent="{{ ns.accent }}">
-      <div class="category-heading"><h2>{{ category.name }}</h2>{% if category.description %}<p class="category-description">{{ category.description }}</p>{% endif %}</div>
+<!-- Essen: kompakt und auf Holz wie in der Originalkarte. -->
+<section class="menu-page food-page start-page">
+  <h1 class="page-title">Speisen</h1>
+  <div class="columns">
+  {% for category in categories %}
+    {% if category.type.value == 'food' and 'burger' not in category.name|lower %}
+    <section class="category">
+      <h2>{{ category.name }}</h2>
+      {% if category.description %}<p class="category-desc">{{ category.description }}</p>{% endif %}
       {% for item in category.items %}
-      <article class="menu-item">
-        <div class="item-line"><span class="item-name">{{ item.name }}</span><span class="leader"></span><span class="price">{{ format_price(item.price) }}</span></div>
-        {% if item.description %}<p class="description">{{ item.description }}</p>{% endif %}
-        {% if item.second_price %}<div class="variant"><span>{{ item.second_price_label or "Weitere Größe" }}</span><strong>{{ format_price(item.second_price) }}</strong></div>{% endif %}
-        {% if item.allergens or item.additives or item.vegan or item.vegetarian or item.spicy_level %}<div class="meta">{% if item.vegan %}Vegan{% elif item.vegetarian %}Vegetarisch{% endif %}{% if item.spicy_level %}{% if item.vegan or item.vegetarian %} · {% endif %}Pikant {{ item.spicy_level }}{% endif %}{% if item.allergens %} · Allergene: {{ item.allergens }}{% endif %}{% if item.additives %} · Zusatzstoffe: {{ item.additives }}{% endif %}</div>{% endif %}
+      <article class="item">
+        <div class="item-main"><span class="item-name">{{ item.name }}</span><span class="item-price">{{ format_price(item.price) }}</span></div>
+        {% if item.description %}<p class="item-desc">{{ item.description }}</p>{% endif %}
+        {% if item.second_price %}<div class="variant"><span>{{ item.second_price_label or 'Weitere Größe' }}</span><strong>{{ format_price(item.second_price) }}</strong></div>{% endif %}
+        {% if item.allergens or item.additives %}<div class="meta">{% if item.allergens %}Allergene: {{ item.allergens }}{% endif %}{% if item.additives %}{% if item.allergens %} · {% endif %}Zusatzstoffe: {{ item.additives }}{% endif %}</div>{% endif %}
       </article>
       {% endfor %}
     </section>
-    {% set cname = category.name|lower %}
-    {% if 'nachos' in cname and asset_data('nachos.jpg') %}
-      <figure class="menu-photo"><img src="{{ asset_data('nachos.jpg') }}" alt=""></figure>
-    {% elif 'burrito' in cname and asset_data('burrito.jpg') %}
-      <figure class="menu-photo tall"><img src="{{ asset_data('burrito.jpg') }}" alt=""></figure>
-    {% elif 'fajita' in cname and asset_data('fajitas.jpg') %}
-      <figure class="menu-photo"><img src="{{ asset_data('fajitas.jpg') }}" alt=""></figure>
-    {% elif 'burger' in cname and asset_data('burger.jpg') %}
-      <figure class="menu-photo tall"><img src="{{ asset_data('burger.jpg') }}" alt=""></figure>
     {% endif %}
-  {% endif %}
-{% endfor %}
-</main>
+  {% endfor %}
+  </div>
 </section>
 
-<!-- Getränke beginnen bewusst auf einer neuen A4-Seite. -->
-<section class="menu-pages drinks-start">
-<header class="menu-topline">
-  <div><div class="brand">TACO<b>MEX</b></div><div class="tagline">Cocina · Bar · Cocktailgarten</div></div>
-</header>
-<main class="menu-flow">
-<div class="section-label">Getränke</div>
-{% set ns = namespace(accent=2) %}
-{% for category in categories %}
-  {% if category.type.value == 'drinks' %}
-    {% set ns.accent = (ns.accent + 1) % 4 %}
-    <section class="category dense" data-accent="{{ ns.accent }}">
-      <div class="category-heading"><h2>{{ category.name }}</h2>{% if category.description %}<p class="category-description">{{ category.description }}</p>{% endif %}</div>
-      {% for item in category.items %}
-      <article class="menu-item">
-        <div class="item-line"><span class="item-name">{{ item.name }}</span><span class="leader"></span><span class="price">{{ format_price(item.price) }}</span></div>
-        {% if item.description %}<p class="description">{{ item.description }}</p>{% endif %}
-        {% if item.second_price %}<div class="variant"><span>{{ item.second_price_label or "Weitere Größe" }}</span><strong>{{ format_price(item.second_price) }}</strong></div>{% endif %}
-        {% if item.allergens or item.additives or item.vegan or item.vegetarian or item.spicy_level %}<div class="meta">{% if item.vegan %}Vegan{% elif item.vegetarian %}Vegetarisch{% endif %}{% if item.spicy_level %}{% if item.vegan or item.vegetarian %} · {% endif %}Pikant {{ item.spicy_level }}{% endif %}{% if item.allergens %} · Allergene: {{ item.allergens }}{% endif %}{% if item.additives %} · Zusatzstoffe: {{ item.additives }}{% endif %}</div>{% endif %}
-      </article>
-      {% endfor %}
+<!-- Burger wie im Original als eigener Abschnitt / eigene Seite. -->
+<section class="menu-page burger-page start-page">
+  <h1 class="page-title">Burger-Karte</h1>
+  <p class="page-note">Frische Produkte · hausgemachte Saucen · täglich frisch</p>
+  <div class="columns">
+  {% for category in categories %}{% if category.type.value == 'food' and 'burger' in category.name|lower %}
+    <section class="category"><h2>{{ category.name }}</h2>{% if category.description %}<p class="category-desc">{{ category.description }}</p>{% endif %}
+    {% for item in category.items %}<article class="item"><div class="item-main"><span class="item-name">{{ item.name }}</span>{% if item.description %}<span class="item-desc">{{ item.description }}</span>{% endif %}<span class="item-price">{{ format_price(item.price) }}</span></div>{% if item.second_price %}<div class="variant"><span>{{ item.second_price_label or 'Weitere Größe' }}</span><strong>{{ format_price(item.second_price) }}</strong></div>{% endif %}</article>{% endfor %}
     </section>
-  {% endif %}
-{% endfor %}
-</main>
+  {% endif %}{% endfor %}
+  </div>
 </section>
 
-<!-- Cocktails sind ein eigener Hauptbereich und beginnen ebenfalls auf einer neuen A4-Seite. -->
-<section class="menu-pages cocktails-start">
-<header class="menu-topline">
-  <div><div class="brand">TACO<b>MEX</b></div><div class="tagline">Cocina · Bar · Cocktailgarten</div></div>
-</header>
-<main class="menu-flow">
-<div class="section-label">Cocktails</div>
-{% set ns = namespace(accent=1) %}
-{% for category in categories %}
-  {% if category.type.value == 'cocktails' %}
-    {% set ns.accent = (ns.accent + 1) % 4 %}
-    <section class="category dense" data-accent="{{ ns.accent }}">
-      <div class="category-heading"><h2>{{ category.name }}</h2>{% if category.description %}<p class="category-description">{{ category.description }}</p>{% endif %}</div>
-      {% for item in category.items %}
-      <article class="menu-item">
-        <div class="item-line"><span class="item-name">{{ item.name }}</span><span class="leader"></span><span class="price">{{ format_price(item.price) }}</span></div>
-        {% if item.description %}<p class="description">{{ item.description }}</p>{% endif %}
-        {% if item.second_price %}<div class="variant"><span>{{ item.second_price_label or "Weitere Größe" }}</span><strong>{{ format_price(item.second_price) }}</strong></div>{% endif %}
-        {% if item.allergens or item.additives or item.vegan or item.vegetarian or item.spicy_level %}<div class="meta">{% if item.vegan %}Vegan{% elif item.vegetarian %}Vegetarisch{% endif %}{% if item.spicy_level %}{% if item.vegan or item.vegetarian %} · {% endif %}Pikant {{ item.spicy_level }}{% endif %}{% if item.allergens %} · Allergene: {{ item.allergens }}{% endif %}{% if item.additives %} · Zusatzstoffe: {{ item.additives }}{% endif %}</div>{% endif %}
-      </article>
-      {% endfor %}
+<!-- Getränke beginnen wie im Original auf einer neuen Seite. -->
+<section class="menu-page drinks-page start-page">
+  <h1 class="page-title">Getränke</h1>
+  <div class="columns">
+  {% for category in categories %}{% if category.type.value == 'drinks' %}
+    <section class="category"><h2>{{ category.name }}</h2>{% if category.description %}<p class="category-desc">{{ category.description }}</p>{% endif %}
+    {% for item in category.items %}<article class="item"><div class="item-main"><span class="item-name">{{ item.name }}</span><span class="item-price">{{ format_price(item.price) }}</span></div>{% if item.description %}<p class="item-desc">{{ item.description }}</p>{% endif %}{% if item.second_price %}<div class="variant"><span>{{ item.second_price_label or 'Weitere Größe' }}</span><strong>{{ format_price(item.second_price) }}</strong></div>{% endif %}</article>{% endfor %}
     </section>
-  {% endif %}
-{% endfor %}
-<div class="end-mark">¡Buen provecho! · Sabor, Pasión y Fiesta</div>
-</main>
+  {% endif %}{% endfor %}
+  </div>
 </section>
 
+<!-- Cocktails beginnen ebenfalls auf einer neuen Seite, mit farbigen handschriftlichen Rubriken wie im Original. -->
+<section class="menu-page cocktails-page cocktails-page-one start-page">
+  <h1 class="page-title">Cocktails</h1>
+  <div class="columns">
+  {% for category in cocktail_categories[:4] %}
+    <section class="category"><h2>{{ category.name }}</h2>{% if category.description %}<p class="category-desc">{{ category.description }}</p>{% endif %}
+    {% for item in category.items %}<article class="item"><div class="item-main"><span class="item-name">{{ item.name }}</span><span class="item-price">{{ format_price(item.price) }}</span></div>{% if item.description %}<p class="item-desc">{{ item.description }}</p>{% endif %}{% if item.second_price %}<div class="variant"><span>{{ item.second_price_label or 'Weitere Größe' }}</span><strong>{{ format_price(item.second_price) }}</strong></div>{% endif %}</article>{% endfor %}
+    </section>
+  {% endfor %}
+  </div>
+</section>
+
+<section class="menu-page cocktails-page cocktails-page-two start-page">
+  <div class="columns">
+  {% for category in cocktail_categories[4:] %}
+    <section class="category"><h2>{{ category.name }}</h2>{% if category.description %}<p class="category-desc">{{ category.description }}</p>{% endif %}
+    {% for item in category.items %}<article class="item"><div class="item-main"><span class="item-name">{{ item.name }}</span><span class="item-price">{{ format_price(item.price) }}</span></div>{% if item.description %}<p class="item-desc">{{ item.description }}</p>{% endif %}{% if item.second_price %}<div class="variant"><span>{{ item.second_price_label or 'Weitere Größe' }}</span><strong>{{ format_price(item.second_price) }}</strong></div>{% endif %}</article>{% endfor %}
+    </section>
+  {% endfor %}
+  </div>
+  <div class="footer-note">* Keine Happy Hour</div>
+</section>
 </body>
 </html>

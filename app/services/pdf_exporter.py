@@ -52,9 +52,15 @@ class PdfExporter:
         context = build_menu_context(session, active_only=True)
         settings = context["settings"]
         assets_dir = template_dir / "assets"
+        cocktail_categories = [
+            category
+            for category in context["categories"]
+            if category.type.value == "cocktails"
+        ]
         context.update(
             {
                 "asset_data": lambda name: self._file_data_uri(assets_dir / name),
+                "cocktail_categories": cocktail_categories,
                 "qr_data_uri": self._qr_data_uri(settings.menu_url),
             }
         )
