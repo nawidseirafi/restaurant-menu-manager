@@ -65,3 +65,44 @@
 2026-09-03 15:52:06,230 INFO app.gui.main_window: Action completed: /Users/nawid/Projects/restaurant-menu-manager/exports/menu.pdf
 2026-09-03 15:52:44,581 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/menu.pdf
 2026-09-03 16:12:08,280 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/menu.pdf
+2026-09-03 16:19:05,085 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/menu.json
+2026-09-03 16:20:07,972 INFO app.gui.main_window: Action completed: /Users/nawid/Projects/restaurant-menu-manager/exports/menu.pdf
+2026-09-03 16:26:23,772 ERROR app.gui.main_window: User action failed
+Traceback (most recent call last):
+  File "/Users/nawid/Projects/restaurant-menu-manager/app/gui/main_window.py", line 1205, in _run_user_action
+    result = action()
+  File "/Users/nawid/Projects/restaurant-menu-manager/app/gui/main_window.py", line 963, in <lambda>
+    self._run_user_action(lambda: asyncio.run(PdfExporter().export(self.session, Path(target))), "PDF exportiert")
+                                  ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py", line 205, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/runners.py", line 128, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/asyncio/base_events.py", line 719, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/Users/nawid/Projects/restaurant-menu-manager/app/services/pdf_exporter.py", line 72, in export
+    html = self.render_html(session, template_name)
+  File "/Users/nawid/Projects/restaurant-menu-manager/app/services/pdf_exporter.py", line 67, in render_html
+    return env.get_template("menu.html.j2").render(**context)
+           ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Users/nawid/Projects/restaurant-menu-manager/.venv/lib/python3.14/site-packages/jinja2/environment.py", line 1016, in get_template
+    return self._load_template(name, globals)
+           ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/nawid/Projects/restaurant-menu-manager/.venv/lib/python3.14/site-packages/jinja2/environment.py", line 975, in _load_template
+    template = self.loader.load(self, name, self.make_globals(globals))
+  File "/Users/nawid/Projects/restaurant-menu-manager/.venv/lib/python3.14/site-packages/jinja2/loaders.py", line 138, in load
+    code = environment.compile(source, name, filename)
+  File "/Users/nawid/Projects/restaurant-menu-manager/.venv/lib/python3.14/site-packages/jinja2/environment.py", line 771, in compile
+    self.handle_exception(source=source_hint)
+    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/Users/nawid/Projects/restaurant-menu-manager/.venv/lib/python3.14/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/Users/nawid/Projects/restaurant-menu-manager/app/templates/pdf/modern_dark/menu.html.j2", line 10, in template
+    {% IF ITEM.ORDER_NUMBER %}{{ ITEM.ORDER_NUMBER }}.{% ENDIF %}{{ ITEM.NAME }}
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.TemplateSyntaxError: Encountered unknown tag 'IF'. Jinja was looking for the following tags: 'endfor' or 'else'. The innermost block that needs to be closed is 'for'.
+2026-09-03 16:28:58,134 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/menu.pdf
+2026-09-03 16:34:48,994 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/menu.pdf

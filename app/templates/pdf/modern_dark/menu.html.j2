@@ -10,29 +10,30 @@
 @page cocktail-two { size:A4 portrait; margin:0; background:#dcc6ad url("{{ asset_data('Cocktail-2.png') }}") center/cover no-repeat; }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-body{font-family:Arial,Helvetica,sans-serif;color:#17120f;font-size:8.6pt;line-height:1.16}
+body{font-family:Arial,Helvetica,sans-serif;color:#17120f;font-size:10.2pt;line-height:1.08}
 .cover{page:cover;width:210mm;height:297mm;overflow:hidden;position:relative;background:#dcc6ad}
 .cover img{width:100%;height:100%;object-fit:cover;display:block}
 .menu-page{page:wood;position:relative;background:#dcc6ad url("{{ asset_data('Holz-Hintergrund.png') }}") center/cover no-repeat;color:#17120f;width:210mm;min-height:297mm;padding:12mm 11mm 10mm;-webkit-box-decoration-break:clone;box-decoration-break:clone}
 .menu-page:before{content:"";position:absolute;inset:0;background:rgba(245,229,208,.18);z-index:0;pointer-events:none}
 .menu-page>*{position:relative;z-index:1}
 .start-page{break-before:page}
-.page-title{text-align:center;font-family:"Marker Felt","Segoe Print","Bradley Hand",cursive;font-size:19pt;font-weight:900;line-height:1;margin:0 0 3mm;text-transform:uppercase;letter-spacing:.02em}
-.page-note{text-align:center;font-family:"Marker Felt","Segoe Print",cursive;font-size:8pt;font-weight:700;margin:-1mm 0 3.5mm}
+.page-title{text-align:center;font-family:"Marker Felt","Segoe Print","Bradley Hand",cursive;font-size:24pt;font-weight:900;line-height:1;margin:0 0 3mm;text-transform:uppercase;letter-spacing:.02em}
+.page-note{text-align:center;font-family:"Marker Felt","Segoe Print",cursive;font-size:10pt;font-weight:700;margin:-1mm 0 3.5mm}
 .columns{max-width:186mm;margin:0 auto}
-.category{break-inside:avoid;margin:0 0 4.4mm}
-.category h2{font-family:"Marker Felt","Segoe Print","Bradley Hand",cursive;font-size:20pt;line-height:1.02;text-align:center;text-transform:uppercase;margin:0 0 1.5mm;font-weight:900;letter-spacing:.02em}
-.category-desc{font-family:"Marker Felt","Segoe Print","Bradley Hand",cursive;text-align:center;font-size:7.2pt;font-weight:700;margin:0 0 1.4mm;line-height:1.1}
-.item{break-inside:avoid;margin:0 0 1.25mm;padding:0 0 .7mm;border-bottom:.18mm solid rgba(89,58,39,.12)}
+.category{break-inside:avoid;margin:0 0 5mm}
+.category h2{font-family:"Marker Felt","Segoe Print","Bradley Hand",cursive;font-size:24pt;line-height:1;text-align:center;text-transform:uppercase;margin:0 0 1.6mm;font-weight:900;letter-spacing:.02em}
+.category-desc{font-family:"Marker Felt","Segoe Print","Bradley Hand",cursive;text-align:center;font-size:10.4pt;font-weight:700;margin:0 0 1.4mm;line-height:1.08}
+.item{break-inside:avoid;margin:0 0 .9mm;padding:0 0 .45mm;border-bottom:.18mm solid rgba(89,58,39,.12)}
 .item-main{display:grid;grid-template-columns:1fr auto;gap:2mm;align-items:baseline}
-.item-name{font-family:"Marker Felt","Segoe Print","Bradley Hand",cursive;font-size:9.2pt;font-weight:900;text-transform:uppercase;line-height:1.02}
-.item-number{display:inline-block;min-width:10mm}
-.item-price{font-family:"Marker Felt","Segoe Print","Bradley Hand",cursive;font-size:9pt;font-weight:900;white-space:nowrap}
-.item-desc{font-size:6.9pt;line-height:1.12;margin:.3mm 0 0 1.5mm}
-.variant{display:flex;justify-content:space-between;gap:3mm;margin:.35mm 0 0 1.5mm;font-size:6.8pt;font-weight:700}.variant strong{white-space:nowrap}
-.meta{font-size:5.9pt;margin:.35mm 0 0 1.5mm;font-weight:700;color:#4d3d32}
-.burger-page .category{max-width:180mm;margin-left:auto;margin-right:auto}.burger-page .category h2{font-size:18pt}.burger-page .item{margin-bottom:1.8mm}.burger-page .item-main{grid-template-columns:56mm 1fr auto}.burger-page .item-name{font-size:10.5pt}.burger-page .item-desc{grid-column:2;margin:0;font-size:7.4pt}.burger-page .item-price{grid-column:3;grid-row:1}
-.drinks-page .category h2,.cocktails-page .category h2{text-align:left;font-size:14pt}.drinks-page .item,.cocktails-page .item{margin-bottom:.8mm}.drinks-page .item-name,.drinks-page .item-price,.cocktails-page .item-name,.cocktails-page .item-price{font-size:8.3pt}.drinks-page .item-desc,.cocktails-page .item-desc{font-size:6.3pt}
+.item-name{font-family:"Marker Felt","Segoe Print","Bradley Hand",cursive;font-size:14.2pt;font-weight:900;text-transform:uppercase;line-height:1}
+.item-number{display:inline-block;min-width:14mm}
+.item-price{font-family:"Marker Felt","Segoe Print","Bradley Hand",cursive;font-size:14pt;font-weight:900;white-space:nowrap}
+.item-desc{font-size:11.2pt;line-height:1.05;margin:.15mm 0 0 14mm}
+.variant{display:flex;justify-content:space-between;gap:3mm;margin:.3mm 0 0 14mm;font-size:10pt;font-weight:700}.variant strong{white-space:nowrap}
+.meta{font-size:8pt;margin:.3mm 0 0 14mm;font-weight:700;color:#4d3d32}
+.burger-page .page-title{font-size:26pt}.burger-page .category{max-width:180mm;margin-left:auto;margin-right:auto}.burger-page .category h2{font-size:22pt}.burger-page .item{margin-bottom:1.2mm}.burger-page .item-main{grid-template-columns:68mm 1fr auto}.burger-page .item-name{font-size:13pt}.burger-page .item-desc{grid-column:2;margin:0;font-size:10pt}.burger-page .item-price{grid-column:3;grid-row:1;font-size:12.5pt}
+.drinks-page .category h2{ text-align:left;font-size:20pt}.drinks-page .item{margin-bottom:.55mm}.drinks-page .item-name,.drinks-page .item-price{font-size:12pt}.drinks-page .item-desc{font-size:9.4pt;margin-left:0}
+.cocktails-page .category h2{text-align:left;font-size:18pt}.cocktails-page .item{margin-bottom:.55mm}.cocktails-page .item-name{font-size:12pt}.cocktails-page .item-price{font-size:11.6pt}.cocktails-page .item-desc{font-size:8.7pt;line-height:1.03;margin-left:0}
 .cocktails-page{page:cocktail-one;background:#dcc6ad url("{{ asset_data('Cocktail-1.png') }}") center/cover no-repeat}
 .cocktails-page-two{page:cocktail-two;background:#dcc6ad url("{{ asset_data('Cocktail-2.png') }}") center/cover no-repeat}
 .cocktails-page:before{background:transparent}
