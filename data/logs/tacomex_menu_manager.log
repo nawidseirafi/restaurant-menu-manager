@@ -117,3 +117,5 @@ jinja2.exceptions.TemplateSyntaxError: Encountered unknown tag 'IF'. Jinja was l
 2026-09-08 14:13:25,035 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/menu.pdf
 2026-09-08 14:24:51,031 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/menu.pdf
 2026-09-08 14:27:15,786 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/menu_4.pdf
+2026-09-08 14:51:16,081 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/menu.pdf
+2026-09-08 14:53:01,382 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/menu.pdf
