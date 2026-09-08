@@ -66,6 +66,34 @@ class PdfExporter:
         )
         return env.get_template("menu.html.j2").render(**context)
 
+    @staticmethod
+    async def _expand_menu_pages(page) -> None:
+        await page.evaluate(
+            """
+            async () => {
+                if (document.fonts && document.fonts.ready) {
+                    await document.fonts.ready;
+                }
+
+                const probe = document.createElement("div");
+                probe.style.cssText = "position:absolute;visibility:hidden;pointer-events:none;height:297mm;width:1px;";
+                document.body.appendChild(probe);
+                const pageHeight = probe.getBoundingClientRect().height;
+                probe.remove();
+
+                document.querySelectorAll(".menu-page").forEach((section) => {
+                    section.style.minHeight = "0";
+                    const sectionHeight = Math.max(
+                        section.scrollHeight,
+                        section.getBoundingClientRect().height
+                    );
+                    const pages = Math.max(1, Math.ceil((sectionHeight - 1) / pageHeight));
+                    section.style.minHeight = `${pages * pageHeight}px`;
+                });
+            }
+            """
+        )
+
     async def export(self, session: Session, target_pdf: Path, template_name: str = "modern_dark") -> Path:
         from playwright.async_api import async_playwright
 
@@ -75,6 +103,7 @@ class PdfExporter:
             browser = await playwright.chromium.launch()
             page = await browser.new_page()
             await page.set_content(html, wait_until="networkidle")
+            await self._expand_menu_pages(page)
             await page.pdf(
                 path=str(target_pdf),
                 format="A4",
