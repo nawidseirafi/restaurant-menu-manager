@@ -17,6 +17,7 @@ class MenuItem(Base):
     name: Mapped[str] = mapped_column(String(160), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    price_label: Mapped[str | None] = mapped_column(String(80))
     second_price: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
     second_price_label: Mapped[str | None] = mapped_column(String(80))
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)

@@ -41,6 +41,8 @@ pytest
 - Tabellenmodus zum schnellen Bearbeiten vieler Preise
 - Tastenkurzel: Strg+S zum Speichern, Entf zum Loeschen nach Rueckfrage
 - JSON-Export und JSON-Import
+- Getränke und Speisen mit zwei Mengen/Größen und jeweils eigenem Preis (z. B. 0,2 l / 0,3 l)
+- Beide Preisvarianten im Editor, in der Preisübersicht, im HTML-/PDF-Export und in der Merkliste
 - HTML-Export als responsive statische Smartphone-Speisekarte
 - QR-Code-Export als PNG/SVG plus einfache Druckvorlage
 - PDF-Service mit Playwright/Chromium und Jinja2-Template

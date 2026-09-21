@@ -23,6 +23,7 @@
   function normalizeItem(item) {
     return {
       itemId: String(item.itemId),
+      orderNumber: item.orderNumber ? String(item.orderNumber) : "",
       name: String(item.name || ""),
       variant: item.variant ? String(item.variant) : null,
       unitPriceCents: normalizeCents(item.unitPriceCents),
@@ -37,9 +38,16 @@
     }
     const next = createEmptySelection(rawSelection.menuVersion || "local");
     rawSelection.items.forEach((rawItem) => {
-      const item = normalizeItem(rawItem);
+      let item = normalizeItem(rawItem);
+      if (catalog) {
+        // Older exports stored the first size without a label.
+        const current = catalog.get(itemKey(item)) || (!item.variant
+          ? Array.from(catalog.values()).find((entry) => String(entry.itemId) === item.itemId)
+          : null);
+        if (!current) return;
+        item = normalizeItem({ ...item, ...current });
+      }
       if (!item.itemId || !item.name || item.unitPriceCents <= 0) return;
-      if (catalog && !catalog.has(itemKey(item))) return;
       const existing = next.items.find((entry) => itemKey(entry) === itemKey(item));
       if (existing) {
         existing.quantity += item.quantity;
@@ -151,14 +159,16 @@
     slots.forEach((slot) => {
       const baseItem = {
         itemId: slot.dataset.itemId,
+        orderNumber: slot.dataset.orderNumber || "",
         name: slot.dataset.name,
-        variant: null,
+        variant: slot.dataset.priceLabel || null,
         unitPriceCents: normalizeCents(slot.dataset.priceCents),
       };
       catalog.set(itemKey(baseItem), baseItem);
       if (slot.dataset.secondPriceCents) {
         const variantItem = {
           itemId: slot.dataset.itemId,
+          orderNumber: slot.dataset.orderNumber || "",
           name: slot.dataset.name,
           variant: slot.dataset.secondPriceLabel || "Variante",
           unitPriceCents: normalizeCents(slot.dataset.secondPriceCents),
@@ -194,7 +204,7 @@
 
     function renderMenuActions() {
       slots.forEach((slot) => {
-        const base = catalog.get(`${slot.dataset.itemId}::`);
+        const base = catalog.get(`${slot.dataset.itemId}::${slot.dataset.priceLabel || ""}`);
         const second = slot.dataset.secondPriceCents
           ? catalog.get(`${slot.dataset.itemId}::${slot.dataset.secondPriceLabel || "Variante"}`)
           : null;
@@ -203,20 +213,28 @@
         [base, second].filter(Boolean).forEach((menuItem) => {
           const selected = getSelected(menuItem.itemId, menuItem.variant);
           const row = document.createElement("div");
-          row.className = "item-action-row";
-          if (menuItem.variant) {
-            const label = document.createElement("span");
-            label.className = "variant-label";
-            label.textContent = `${menuItem.variant} · ${formatMoney(menuItem.unitPriceCents, currency)}`;
-            row.appendChild(label);
-          }
+          row.className = "menu-price-row";
+          const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+          icon.setAttribute("class", "price-icon");
+          icon.setAttribute("aria-hidden", "true");
+          const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
+          use.setAttribute("href", ["drink-pitcher", "drink-glass", "menu-plate"].includes(slot.dataset.priceIcon) ? `#${slot.dataset.priceIcon}` : "#menu-plate");
+          icon.appendChild(use);
+          const size = document.createElement("span");
+          size.className = "price-size";
+          size.textContent = menuItem.variant || slot.dataset.defaultLabel || "Portion";
+          const price = document.createElement("strong");
+          price.className = "variant-price";
+          price.textContent = formatMoney(menuItem.unitPriceCents, currency);
+          row.append(icon, size, price);
           if (selected) {
             row.appendChild(createQuantityControls(selected));
           } else {
             const button = document.createElement("button");
             button.type = "button";
-            button.className = "remember-button";
-            button.textContent = menuItem.variant ? `${menuItem.variant} merken` : "Merken";
+            button.className = "menu-remember-button";
+            button.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24"><use href="#bookmark"/></svg>';
+            button.title = "Merken";
             button.setAttribute("aria-label", `${menuItem.name}${menuItem.variant ? " " + menuItem.variant : ""} merken`);
             button.addEventListener("click", () => {
               selection = addItem(selection, menuItem);
@@ -266,7 +284,7 @@
         row.innerHTML = `
           <div class="selection-item-main">
             <div>
-              <strong>${escapeHtml(item.quantity)} × ${escapeHtml(item.name)}</strong>
+              <strong>${escapeHtml(item.quantity)} × ${escapeHtml(item.orderNumber ? item.orderNumber + ". " + item.name : item.name)}</strong>
               ${item.variant ? `<span>${escapeHtml(item.variant)}</span>` : ""}
               <small>${formatMoney(item.unitPriceCents, currency)} je Stück</small>
             </div>
@@ -321,7 +339,7 @@
           const row = document.createElement("article");
           row.className = "large-item";
           row.innerHTML = `
-            <strong>${escapeHtml(item.quantity)} × ${escapeHtml(item.name)}</strong>
+            <strong>${escapeHtml(item.quantity)} × ${escapeHtml(item.orderNumber ? item.orderNumber + ". " + item.name : item.name)}</strong>
             ${item.variant ? `<span>${escapeHtml(item.variant)}</span>` : ""}
             ${item.note ? `<p>${escapeHtml(item.note)}</p>` : ""}
           `;
@@ -360,28 +378,58 @@
       }
     });
 
-    initNavArrows(document);
     persistAndRender();
+    initCategoryNavigation(document);
   }
 
-  function initNavArrows(document) {
+  function initCategoryNavigation(document) {
     const nav = document.querySelector(".category-nav");
-    const left = document.querySelector("[data-scroll-nav='left']");
-    const right = document.querySelector("[data-scroll-nav='right']");
-    if (!nav || !left || !right) return;
-    const updateButtons = () => {
-      const maxScroll = nav.scrollWidth - nav.clientWidth;
-      left.disabled = nav.scrollLeft <= 4;
-      right.disabled = nav.scrollLeft >= maxScroll - 4;
-    };
-    const scrollNav = (direction) => {
-      nav.scrollBy({ left: direction * Math.max(180, nav.clientWidth * 0.72), behavior: "smooth" });
-    };
-    left.addEventListener("click", () => scrollNav(-1));
-    right.addEventListener("click", () => scrollNav(1));
-    nav.addEventListener("scroll", updateButtons, { passive: true });
-    global.addEventListener("resize", updateButtons);
-    updateButtons();
+    const wrapper = document.querySelector(".nav-wrap");
+    if (!nav || !wrapper) return;
+    const entries = Array.from(nav.querySelectorAll('a[href^="#"]'))
+      .map((link) => ({ link, section: document.getElementById(link.hash.slice(1)) }))
+      .filter((entry) => entry.section);
+    if (!entries.length) return;
+
+    let activeLink = null;
+    let scheduled = false;
+    function update() {
+      scheduled = false;
+      const height = wrapper.getBoundingClientRect().height;
+      document.documentElement.style.setProperty("--category-nav-height", height + "px");
+      let current = entries[0];
+      for (const entry of entries) {
+        if (entry.section.getBoundingClientRect().top <= height + 1) current = entry;
+      }
+      // A short final category may never reach the top of the viewport.
+      if (global.scrollY > 0 && global.scrollY + global.innerHeight >= document.documentElement.scrollHeight - 2) {
+        current = entries[entries.length - 1];
+      }
+      if (current.link === activeLink) return;
+      activeLink?.removeAttribute("aria-current");
+      activeLink = current.link;
+      activeLink.setAttribute("aria-current", "location");
+      const bounds = nav.getBoundingClientRect();
+      const tab = activeLink.getBoundingClientRect();
+      if (tab.left < bounds.left || tab.right > bounds.right) {
+        // Only move the tab strip; keep the page's vertical scroll position.
+        nav.scrollBy({ left: tab.left - bounds.left - (bounds.width - tab.width) / 2, behavior: "instant" });
+      }
+    }
+    function scheduleUpdate() {
+      if (scheduled) return;
+      scheduled = true;
+      global.requestAnimationFrame(update);
+    }
+    global.addEventListener("scroll", scheduleUpdate, { passive: true });
+    global.addEventListener("resize", scheduleUpdate);
+    global.addEventListener("load", scheduleUpdate);
+    if (global.ResizeObserver) {
+      const observer = new global.ResizeObserver(scheduleUpdate);
+      observer.observe(wrapper);
+      entries.forEach(({ section }) => observer.observe(section));
+    }
+    update();
   }
 
   function escapeHtml(value) {

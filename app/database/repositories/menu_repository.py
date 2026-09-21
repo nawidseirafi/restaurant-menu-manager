@@ -66,6 +66,7 @@ class MenuRepository:
             name=f"{item.name} Kopie",
             description=item.description,
             price=item.price,
+            price_label=item.price_label,
             second_price=item.second_price,
             second_price_label=item.second_price_label,
             sort_order=item.sort_order + 1,
@@ -86,14 +87,17 @@ class MenuRepository:
             self.session.delete(item)
             self.session.commit()
 
-    def update_item_price(self, item_id: int, price: Decimal) -> None:
+    def update_item_price(self, item_id: int, price: Decimal, *, second: bool = False) -> None:
         price = Decimal(str(price)).quantize(Decimal("0.01"))
         if price < 0:
             raise ValidationError("Preis darf nicht negativ sein.")
         item = self.get_item(item_id)
         if not item:
             raise ValidationError("Gericht wurde nicht gefunden.")
-        item.price = price
+        if second:
+            item.second_price = price
+        else:
+            item.price = price
         self.session.commit()
 
     def next_order_number(self) -> int:
@@ -194,5 +198,5 @@ class MenuRepository:
                 item.second_price = Decimal(str(item.second_price)).quantize(Decimal("0.01"))
         except (InvalidOperation, TypeError):
             raise ValidationError("Bitte einen gueltigen Preis eingeben.") from None
-        if item.price < 0:
+        if item.price < 0 or (item.second_price is not None and item.second_price < 0):
             raise ValidationError("Preis darf nicht negativ sein.")

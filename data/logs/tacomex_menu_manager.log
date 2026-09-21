@@ -119,3 +119,27 @@ jinja2.exceptions.TemplateSyntaxError: Encountered unknown tag 'IF'. Jinja was l
 2026-09-08 14:27:15,786 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/menu_4.pdf
 2026-09-08 14:51:16,081 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/menu.pdf
 2026-09-08 14:53:01,382 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/menu.pdf
+2026-09-20 19:04:31,825 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/index.html
+2026-09-20 19:09:21,806 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/index.html
+2026-09-20 19:17:46,769 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/index.html
+2026-09-20 19:22:38,986 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/menu.pdf
+2026-09-20 19:23:52,220 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/index.html
+2026-09-20 19:26:58,400 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/index.html
+2026-09-20 19:28:49,603 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/index.html
+2026-09-20 19:34:52,939 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/index.html
+2026-09-21 10:13:17,912 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/index.html
+2026-09-21 10:24:27,742 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/index.html
+2026-09-21 10:24:42,224 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/index.html
+2026-09-21 10:25:00,853 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/index.html
+2026-09-21 10:26:08,712 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/index.html
+2026-09-21 10:26:48,435 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/index.html
+2026-09-21 10:32:59,776 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/index.html
+2026-09-21 10:33:54,175 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/index.html
+2026-09-21 10:35:25,308 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/index.html
+2026-09-21 10:36:39,104 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/index.html
+2026-09-21 10:46:33,958 INFO app.gui.main_window: Action completed: MenuItem(id=164, name='Neues Gericht')
+2026-09-21 10:50:55,443 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/index.html
+2026-09-21 10:53:21,482 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/index.html
+2026-09-21 10:56:07,050 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/index.html
+2026-09-21 10:59:52,811 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/index.html
+2026-09-21 11:07:21,772 INFO app.gui.main_window: Action completed: /Users/nawid/Desktop/index.html

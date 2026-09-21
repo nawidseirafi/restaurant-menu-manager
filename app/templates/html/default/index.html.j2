@@ -8,6 +8,12 @@
   <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
+  <svg class="menu-icons" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="drink-glass" viewBox="0 0 24 32"><path d="M5 2h14l-2 27a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L5 2Z M6 10c3-4 6 4 12 0 M10 14l1 11 M15 14l-1 11"/></symbol>
+    <symbol id="drink-pitcher" viewBox="0 0 32 32"><path d="M6 3h18v23a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4V3Z M4 3h22 M24 8h3a3 3 0 0 1 3 3v8a4 4 0 0 1-6 3 M11 8v16 M18 8v16"/></symbol>
+    <symbol id="menu-plate" viewBox="0 0 32 32"><circle cx="17" cy="16" r="10"/><circle cx="17" cy="16" r="6"/><path d="M3 3v8m3-8v8M3 8h3M4.5 11v18M30 3v26"/></symbol>
+    <symbol id="bookmark" viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4V3Z"/></symbol>
+  </svg>
   <header class="site-header">
     <div class="header-inner">
       {% if settings.logo_path %}
@@ -23,18 +29,16 @@
   </header>
   <div class="nav-wrap">
     <div class="category-nav-shell">
-      <button class="nav-arrow nav-arrow-left" type="button" aria-label="Kategorien nach links scrollen" data-scroll-nav="left">‹</button>
       <nav class="category-nav" aria-label="Kategorien">
         {% for category in categories %}
           <a href="#category-{{ category.id }}">{{ category.name }}</a>
         {% endfor %}
       </nav>
-      <button class="nav-arrow nav-arrow-right" type="button" aria-label="Kategorien nach rechts scrollen" data-scroll-nav="right">›</button>
     </div>
   </div>
   <main>
     {% for category in categories %}
-      <section class="category" id="category-{{ category.id }}">
+      <section class="category menu-category" id="category-{{ category.id }}">
         <div class="category-heading">
           <div>
             <span>{{ "%02d" | format(loop.index) }}</span>
@@ -44,16 +48,20 @@
         </div>
         <div class="items">
           {% for item in category.items %}
-            <article class="menu-item" id="item-{{ item.id }}">
+            {% set is_drink = category.type.value in ['drinks', 'cocktails'] %}
+            {% set price_icon = ('drink-pitcher' if 'pitcher' in item.name|lower else 'drink-glass') if is_drink else 'menu-plate' %}
+            {% set default_label = 'Standard' if is_drink else 'Portion' %}
+            <article class="menu-item menu-card" id="item-{{ item.id }}">
               <div class="item-main">
                 <div>
                   <h3>{% if item.order_number %}<span class="order-number">{{ item.order_number }}.</span>{% endif %}{{ item.name }}</h3>
+                  {% if item.vegan or item.vegetarian or item.spicy_level > 0 %}
                   <div class="badges">
                     {% if item.vegan %}<span>Vegan</span>{% elif item.vegetarian %}<span>Vegetarisch</span>{% endif %}
                     {% if item.spicy_level > 0 %}<span>Scharf {{ item.spicy_level }}</span>{% endif %}
                   </div>
+                  {% endif %}
                 </div>
-                <strong>{{ format_price(item.price) }}</strong>
               </div>
               {% if item.description %}<p class="description">{{ item.description }}</p>{% endif %}
               {% if item.allergens or item.additives %}
@@ -62,20 +70,19 @@
                   {% if item.additives %}<span>Zusatzstoffe: {{ item.additives }}</span>{% endif %}
                 </div>
               {% endif %}
-              {% if item.second_price %}
-                <div class="second-price">
-                  <span>{{ item.second_price_label or "Weitere Größe" }}</span>
-                  <strong>{{ format_price(item.second_price) }}</strong>
-                </div>
-              {% endif %}
               <div class="menu-action-slot"
+                data-price-icon="{{ price_icon }}"
+                data-default-label="{{ default_label }}"
                 data-item-id="{{ item.id }}"
                 data-order-number="{{ item.order_number or '' }}"
                 data-name="{{ item.name }}"
                 data-price-cents="{{ (item.price * 100) | round | int }}"
-                data-second-price-cents="{{ (item.second_price * 100) | round | int if item.second_price else '' }}"
+                data-price-label="{{ item.price_label or '' }}"
+                data-second-price-cents="{{ (item.second_price * 100) | round | int if item.second_price is not none else '' }}"
                 data-second-price-label="{{ item.second_price_label or '' }}"
                 data-currency="{{ settings.currency or 'EUR' }}">
+                  <div class="menu-price-row"><svg class="price-icon" aria-hidden="true"><use href="#{{ price_icon }}"/></svg><span class="price-size">{{ item.price_label or default_label }}</span><strong class="variant-price">{{ format_price(item.price) }}</strong></div>
+                  {% if item.second_price is not none %}<div class="menu-price-row"><svg class="price-icon" aria-hidden="true"><use href="#{{ price_icon }}"/></svg><span class="price-size">{{ item.second_price_label or 'Weitere Größe' }}</span><strong class="variant-price">{{ format_price(item.second_price) }}</strong></div>{% endif %}
               </div>
             </article>
           {% endfor %}

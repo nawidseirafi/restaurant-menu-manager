@@ -34,10 +34,21 @@ def create_session_factory(db_path: Path | str | None = None) -> sessionmaker[Se
 
 def _migrate_sqlite_schema(engine) -> None:
     with engine.begin() as connection:
+        # Remove the obsolete imported note; serving sizes belong to item prices.
+        # Match only this legacy value so custom category descriptions survive.
+        connection.execute(
+            text(
+                "UPDATE categories SET description = '' "
+                "WHERE name = :name AND description = :description"
+            ),
+            {"name": "Tequila Añejo", "description": "Preise laut Karte pro 2 cl."},
+        )
         columns = {
             row[1]
             for row in connection.exec_driver_sql("PRAGMA table_info(menu_items)")
         }
+        if "price_label" not in columns:
+            connection.exec_driver_sql("ALTER TABLE menu_items ADD COLUMN price_label VARCHAR(80)")
         if "order_number" not in columns:
             connection.exec_driver_sql("ALTER TABLE menu_items ADD COLUMN order_number INTEGER")
             connection.execute(

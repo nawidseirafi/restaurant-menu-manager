@@ -34,7 +34,7 @@ class PriceEditorDialog(QDialog):
         self._save_timer.setSingleShot(True)
         self._save_timer.setInterval(350)
         self._save_timer.timeout.connect(self._flush_pending_changes)
-        self._pending: dict[int, Decimal] = {}
+        self._pending: dict[tuple[int, bool], Decimal] = {}
 
         self.setWindowTitle("Preise bearbeiten")
         self.setMinimumSize(760, 460)
@@ -103,15 +103,20 @@ class PriceEditorDialog(QDialog):
     def _load_rows(self) -> None:
         self._loading = True
         items = self.repo.list_items(active_only=False)
-        self.table.setRowCount(len(items))
-        for row, item in enumerate(items):
+        variants = []
+        for item in items:
+            variants.append((item, False, item.price_label, item.price))
+            if item.second_price is not None:
+                variants.append((item, True, item.second_price_label or "Weitere Größe", item.second_price))
+        self.table.setRowCount(len(variants))
+        for row, (item, second, label, price) in enumerate(variants):
             order_number = QTableWidgetItem(str(item.order_number) if item.order_number is not None else "")
             order_number.setData(Qt.UserRole, item.id)
             order_number.setData(Qt.UserRole + 1, self._search_text(item))
             order_number.setFlags(order_number.flags() & ~Qt.ItemIsEditable)
             order_number.setTextAlignment(Qt.AlignCenter)
 
-            name = QTableWidgetItem(item.name)
+            name = QTableWidgetItem(f"{item.name} · {label}" if label else item.name)
             name.setData(Qt.UserRole, item.id)
             name.setData(Qt.UserRole + 1, self._search_text(item))
             name.setFlags(name.flags() & ~Qt.ItemIsEditable)
@@ -119,12 +124,13 @@ class PriceEditorDialog(QDialog):
             category = QTableWidgetItem(item.category.name if item.category else "")
             category.setFlags(category.flags() & ~Qt.ItemIsEditable)
 
-            old_price = QTableWidgetItem(self._format_price(item.price))
+            old_price = QTableWidgetItem(self._format_price(price))
             old_price.setFlags(old_price.flags() & ~Qt.ItemIsEditable)
             old_price.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
-            new_price = QTableWidgetItem(self._format_price(item.price))
+            new_price = QTableWidgetItem(self._format_price(price))
             new_price.setData(Qt.UserRole, item.id)
+            new_price.setData(Qt.UserRole + 2, second)
             new_price.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
             self.table.setItem(row, 0, order_number)
@@ -161,7 +167,7 @@ class PriceEditorDialog(QDialog):
             self.status_label.setStyleSheet("color: #E59B94;")
             return
         item_id = self.table.item(item.row(), 0).data(Qt.UserRole)
-        self._pending[item_id] = value
+        self._pending[(item_id, bool(item.data(Qt.UserRole + 2)))] = value
         self.status_label.setText("Speichern …")
         self.status_label.setStyleSheet("")
         self._save_timer.start()
@@ -171,8 +177,8 @@ class PriceEditorDialog(QDialog):
             return
         pending = dict(self._pending)
         try:
-            for item_id, value in pending.items():
-                self.repo.update_item_price(item_id, float(value))
+            for (item_id, second), value in pending.items():
+                self.repo.update_item_price(item_id, value, second=second)
         except Exception as exc:
             self.status_label.setText("Speichern fehlgeschlagen")
             self.status_label.setStyleSheet("color: #E59B94;")
@@ -199,6 +205,7 @@ class PriceEditorDialog(QDialog):
             item.name or "", item.description or "", item.category.name if item.category else "",
             str(item.order_number) if item.order_number is not None else "",
             item.allergens or "", item.additives or "", item.notes or "",
+            item.price_label or "", item.second_price_label or "",
         ]).casefold()
 
     def _focus_search(self) -> None:

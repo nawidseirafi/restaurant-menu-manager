@@ -44,6 +44,7 @@ from app.database.db import DEFAULT_DB_PATH
 from app.database.repositories import MenuRepository
 from app.database.repositories.menu_repository import ValidationError
 from app.gui.dialogs.price_editor import PriceEditorDialog
+from app.gui.dialogs.category_dialog import CategoryDialog
 from app.gui.dialogs.settings_dialog import SettingsDialog
 from app.gui.theme import apply_theme, mark_button
 from app.models import Category, CategoryType, MenuItem
@@ -340,10 +341,13 @@ class MainWindow(QMainWindow):
         self.name_edit = QLineEdit()
         self.description_edit = QTextEdit()
         self.description_edit.setFixedHeight(78)
+        self.price_label_edit = QLineEdit()
+        self.price_label_edit.setPlaceholderText("z. B. 0,2 l (optional)")
         self.price_spin = self._money_spin()
         self.second_price_spin = self._money_spin()
         self.second_price_spin.setSpecialValueText("—")
         self.second_price_label_edit = QLineEdit()
+        self.second_price_label_edit.setPlaceholderText("z. B. 0,3 l")
         self.category_combo = QComboBox()
         self.active_check = QCheckBox("Aktiv")
         self.vegetarian_check = QCheckBox("Vegetarisch")
@@ -416,17 +420,20 @@ class MainWindow(QMainWindow):
         price_label.setStyleSheet("color: #D9B45B;")
         price_col.addWidget(price_label)
         price_col.addWidget(self.price_spin)
+        price_col.addWidget(QLabel("Menge / Größe"))
+        price_col.addWidget(self.price_label_edit)
         second_col = QVBoxLayout()
         second_col.setSpacing(5)
         second_label = QLabel("Zweiter Preis")
         second_label.setProperty("class", "fieldLabel")
         second_col.addWidget(second_label)
         second_col.addWidget(self.second_price_spin)
+        second_col.addWidget(QLabel("Menge / Größe"))
+        second_col.addWidget(self.second_price_label_edit)
         price_layout.addLayout(price_col, 1)
         price_layout.addLayout(second_col, 1)
         layout.addWidget(price_row)
 
-        add_field("Label zweiter Preis", self.second_price_label_edit)
         add_field("Kategorie", self.category_combo, True)
 
         status_label = QLabel("Status")
@@ -442,7 +449,7 @@ class MainWindow(QMainWindow):
 
         for widget in [
             self.order_number_spin, self.name_edit, self.description_edit, self.price_spin, self.second_price_spin,
-            self.second_price_label_edit, self.category_combo, self.active_check,
+            self.price_label_edit, self.second_price_label_edit, self.category_combo, self.active_check,
             self.vegetarian_check, self.vegan_check, self.spicy_spin, self.allergens_edit,
             self.additives_edit, self.image_path_edit, self.notes_edit,
         ]:
@@ -622,7 +629,7 @@ class MainWindow(QMainWindow):
             values = [
                 str(item.order_number) if item.order_number is not None else "",
                 f"{item.sort_order}.  {item.name}",
-                f"{item.price:.2f} EUR".replace(".", ","),
+                self._item_price_text(item),
                 "Ja" if item.active else "Nein",
                 "Ja" if item.vegetarian else "",
                 "Ja" if item.vegan else "",
@@ -664,7 +671,7 @@ class MainWindow(QMainWindow):
                 str(item.order_number) if item.order_number is not None else "",
                 item.name,
                 category_name,
-                f"{item.price:.2f} EUR".replace(".", ","),
+                self._item_price_text(item),
             ]
             self._set_item_row(row, item, values, center_columns={0, 3})
             self.items_table.setRowHeight(row, 42)
@@ -729,6 +736,7 @@ class MainWindow(QMainWindow):
         self.order_number_spin.setValue(item.order_number or 0)
         self.name_edit.setText(item.name)
         self.description_edit.setPlainText(item.description or "")
+        self.price_label_edit.setText(item.price_label or "")
         self.price_spin.setValue(float(item.price))
         self.second_price_spin.setValue(float(item.second_price or 0))
         self.second_price_label_edit.setText(item.second_price_label or "")
@@ -747,7 +755,7 @@ class MainWindow(QMainWindow):
 
     def _clear_editor(self) -> None:
         self._loading = True
-        for widget in [self.name_edit, self.second_price_label_edit, self.allergens_edit, self.additives_edit, self.image_path_edit]:
+        for widget in [self.name_edit, self.price_label_edit, self.second_price_label_edit, self.allergens_edit, self.additives_edit, self.image_path_edit]:
             widget.clear()
         self.description_edit.clear()
         self.notes_edit.clear()
@@ -774,9 +782,10 @@ class MainWindow(QMainWindow):
         category = self._selected_category()
         if not category:
             return
-        name, ok = QInputDialog.getText(self, "Kategorie bearbeiten", "Name", text=category.name)
-        if ok and name.strip():
-            category.name = name.strip()
+        dialog = CategoryDialog(category.name, category.description, self)
+        if dialog.exec() and dialog.name_edit.text().strip():
+            category.name = dialog.name_edit.text().strip()
+            category.description = dialog.description_edit.toPlainText().strip()
             self._run_user_action(lambda: self.repo.save_category(category), "Kategorie gespeichert")
             self.reload_categories(category.id)
 
@@ -795,7 +804,7 @@ class MainWindow(QMainWindow):
         if not category:
             return
         menu = QMenu(self)
-        rename_action = menu.addAction("Umbenennen")
+        rename_action = menu.addAction("Kategorie bearbeiten …")
         toggle_action = menu.addAction("Deaktivieren" if category.active else "Aktivieren")
         menu.addSeparator()
         delete_action = menu.addAction("Löschen")
@@ -936,6 +945,16 @@ class MainWindow(QMainWindow):
         self._run_user_action(lambda: self.repo.set_item_order(self.current_category_id, item_ids), "Gericht-Reihenfolge gespeichert")
         self.reload_items(current_id)
 
+    @staticmethod
+    def _item_price_text(item) -> str:
+        prices = [(item.price_label, item.price)]
+        if item.second_price is not None:
+            prices.append((item.second_price_label or "Weitere Größe", item.second_price))
+        return " / ".join(
+            f"{label + ' ' if label else ''}{price:.2f} €".replace(".", ",")
+            for label, price in prices
+        )
+
     def edit_prices(self) -> None:
         dialog = PriceEditorDialog(self.repo, self)
         if dialog.exec():
@@ -1027,6 +1046,7 @@ class MainWindow(QMainWindow):
         item.order_number = order_number if order_number > 0 else None
         item.name = self.name_edit.text().strip()
         item.description = self.description_edit.toPlainText().strip()
+        item.price_label = self.price_label_edit.text().strip() or None
         item.price = self.price_spin.value()
         second_price = self.second_price_spin.value()
         item.second_price = second_price if second_price > 0 else None
@@ -1173,13 +1193,13 @@ class MainWindow(QMainWindow):
                         str(item.order_number) if item.order_number is not None else "",
                         item.name,
                         category.name if category else "",
-                        f"{float(item.price):.2f} EUR".replace(".", ","),
+                        self._item_price_text(item),
                     ]
                 else:
                     values = [
                         str(item.order_number) if item.order_number is not None else "",
                         f"{item.sort_order}.  {item.name}",
-                        f"{float(item.price):.2f} EUR".replace(".", ","),
+                        self._item_price_text(item),
                         "Ja" if item.active else "Nein",
                         "Ja" if item.vegetarian else "",
                         "Ja" if item.vegan else "",

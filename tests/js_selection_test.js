@@ -76,6 +76,19 @@ function run() {
   assert.equal(restored.items.length, 0);
   assert.equal(selection.calculateTotal(restored), 0);
 
+  const catalog = new Map([
+    ["71::0,2 l", { itemId: "71", name: "Cola", variant: "0,2 l", unitPriceCents: 290 }],
+    ["71::0,3 l", { itemId: "71", name: "Cola", variant: "0,3 l", unitPriceCents: 390 }],
+  ]);
+  const migrated = selection.sanitizeSelection({ items: [
+    { itemId: "71", name: "Cola", variant: null, unitPriceCents: 280, quantity: 2, note: "ohne Eis" },
+    { itemId: "71", name: "Cola", variant: "0,3 l", unitPriceCents: 380, quantity: 1 },
+  ] }, catalog);
+  assert.equal(migrated.items[0].variant, "0,2 l");
+  assert.equal(migrated.items[0].note, "ohne Eis");
+  assert.equal(migrated.items.length, 2);
+  assert.equal(selection.calculateTotal(migrated), 970);
+
   console.log("selection tests passed");
 }
 

@@ -51,3 +51,33 @@ def test_qr_code_export(session, tmp_path: Path):
     assert png.exists()
     assert svg.exists()
     assert print_html.exists()
+
+
+def test_size_prices_round_trip_and_html_export(session, tmp_path):
+    from decimal import Decimal
+    from app.database.repositories import MenuRepository
+    from app.services.pdf_exporter import PdfExporter
+
+    repo = MenuRepository(session)
+    item = repo.list_items()[0]
+    name = item.name
+    item.price_label = "0,2 l"
+    item.price = Decimal("2.90")
+    item.second_price_label = "0,3 l"
+    item.second_price = Decimal("3.90")
+    repo.save_item(item)
+    service = JsonService()
+    target = service.export_menu(session, tmp_path / 'sizes.json')
+    service.import_menu(session, target)
+    restored = next(item for item in repo.list_items() if item.name == name)
+    assert (restored.price_label, restored.second_price_label) == ('0,2 l', '0,3 l')
+    assert (restored.price, restored.second_price) == (Decimal('2.90'), Decimal('3.90'))
+    html = HtmlExporter().export(session, tmp_path / 'html').read_text()
+    assert 'data-price-label="0,2 l"' in html
+    assert 'data-second-price-label="0,3 l"' in html
+    assert 'data-price-cents="290"' in html
+    assert 'data-second-price-cents="390"' in html
+    assert 'class="price-size">0,2 l</span>' in html
+    pdf_html = PdfExporter().render_html(session)
+    assert '0,2 l · 2,90 €' in pdf_html
+    assert '0,3 l' in pdf_html
