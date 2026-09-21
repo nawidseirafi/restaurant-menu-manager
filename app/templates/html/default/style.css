@@ -54,6 +54,13 @@ input:focus-visible {
   outline-offset: 2px;
 }
 
+.site-top {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: #21140f;
+}
+
 .site-header {
   padding: 14px 14px 10px;
   border-bottom: 1px solid var(--line-light);
@@ -109,9 +116,6 @@ input:focus-visible {
 }
 
 .nav-wrap {
-  position: sticky;
-  top: 0;
-  z-index: 5;
   width: 100%;
   max-width: 100vw;
   overflow: hidden;
@@ -179,7 +183,7 @@ main {
 }
 
 .category {
-  scroll-margin-top: var(--category-nav-height, 60px);
+  scroll-margin-top: var(--category-nav-height, 140px);
   padding: 20px 0 24px;
 }
 

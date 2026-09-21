@@ -384,7 +384,8 @@
 
   function initCategoryNavigation(document) {
     const nav = document.querySelector(".category-nav");
-    const wrapper = document.querySelector(".nav-wrap");
+    // Both the brand header and navigation remain above the current category.
+    const wrapper = document.querySelector(".site-top");
     if (!nav || !wrapper) return;
     const entries = Array.from(nav.querySelectorAll('a[href^="#"]'))
       .map((link) => ({ link, section: document.getElementById(link.hash.slice(1)) }))
